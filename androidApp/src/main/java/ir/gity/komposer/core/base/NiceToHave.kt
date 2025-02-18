@@ -1,26 +1,18 @@
 package ir.gity.komposer.core.base
 
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import ir.gity.komposer.core.KomposerWidget
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.column.ColumnModel
 import ir.gity.komposer.core.model.spacer.SpacerModel
 import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.renderer.KomposerRenderer
-import ir.gity.komposer.core.widget.factory.ColumnWidgetFactory
 import ir.gity.komposer.core.widget.factory.DefaultKomposerWidgetFactory
 import ir.gity.komposer.core.widget.factory.KomposerWidgetFactory
-import ir.gity.komposer.core.widget.factory.TextWidgetFactory
 import ir.gity.komposer.core.widget.text.TextWidget
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
-import kotlinx.serialization.serializer
 
 
 class FactoryRegistry {
@@ -54,17 +46,12 @@ class DefaultKomposerSerializer(
     private val format = Json { serializersModule = module }
 
     override fun <T : KomposerModel> serialize(model: T): String {
-        return when (model) {
-            is SpacerModel -> format.encodeToString(model)
-            is TextModel -> format.encodeToString(model)
-            is ColumnModel -> format.encodeToString(model)
-            else -> throw UnsupportedOperationException("Unsupported model type: ${model::class.java}")
-        }
+        TODO("")
     }
 
 
     override fun <T : KomposerModel> deserialize(jsonString: String, clazz: Class<T>): T {
-        return format.decodeFromString<KomposerModel>(jsonString) as T
+        TODO("")
     }
 }
 

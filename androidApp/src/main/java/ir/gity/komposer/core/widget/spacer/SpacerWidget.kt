@@ -8,6 +8,7 @@ import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.spacer.SpacerModel
 import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 
+// Concreate Element
 data class SpacerWidget(
     val pxDp: Dp
 ) : KomposerWidget {

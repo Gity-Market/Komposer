@@ -1,6 +1,7 @@
 package ir.gity.komposer.android
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,7 @@ import ir.gity.komposer.core.model.column.ColumnModel
 import ir.gity.komposer.core.model.spacer.SpacerModel
 import ir.gity.komposer.core.model.text.TextModel
 import ir.gity.komposer.core.renderer.KomposerRenderer
+import ir.gity.komposer.core.visitor.GraphBuilder
 import ir.gity.komposer.core.widget.factory.ColumnWidgetFactory
 import ir.gity.komposer.core.widget.factory.SpacerWidgetFactory
 import ir.gity.komposer.core.widget.factory.TextWidgetFactory
@@ -32,7 +34,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    KomposerJson2ModelDemo()
+                    KomposerModelDemo()
                 }
             }
         }
@@ -73,6 +75,9 @@ private fun KomposerModelDemo() {
         // هر تعداد ویجت جدیدی که اضافه شد، فقط همینجا اضافه می‌شه
     }
     val widget: KomposerWidget = factoryRegistry.build().create(model)
+    val graph = GraphBuilder()
+    graph.Visit(widget)
+    Log.i(TAG, "KomposerModelDemo: " + graph.build())
     KomposerRenderer(widget = widget)
 }
 
@@ -120,6 +125,9 @@ private fun KomposerJson2ModelDemo() {
 @Composable
 fun DefaultPreview() {
     MyApplicationTheme {
-        KomposerJson2ModelDemo()
+        KomposerModelDemo()
     }
 }
+
+
+private const val TAG = "MainActivity"
