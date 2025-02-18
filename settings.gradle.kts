@@ -1,6 +1,7 @@
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 pluginManagement {
     repositories {
+        maven("https://maven.myket.ir")
         google()
         gradlePluginPortal()
         mavenCentral()
@@ -9,6 +10,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        maven("https://maven.myket.ir")
         google()
         mavenCentral()
     }
