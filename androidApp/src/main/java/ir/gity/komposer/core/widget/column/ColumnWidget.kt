@@ -6,7 +6,7 @@ import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.column.ColumnModel
 import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 import ir.gity.komposer.core.widget.composite.KomposerCompositeWidget
-// Concreate Element
+// Concrete Element
 class ColumnWidget(
     children: MutableList<KomposerWidget> = mutableListOf(),
 ) : KomposerWidget, KomposerCompositeWidget {
