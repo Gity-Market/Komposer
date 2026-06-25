@@ -39,6 +39,8 @@ android {
 
 dependencies {
     implementation(projects.shared)
+    implementation(platform(libs.composeBom))
+    androidTestImplementation(platform(libs.composeBom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
