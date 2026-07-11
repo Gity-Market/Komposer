@@ -1,69 +1,99 @@
 # Komposer Roadmap
 
-Deliberately **coarse**. There's a lot of ambiguity ahead — especially around
-translating the full space of Compose modifiers to and from JSON — so this maps
-*direction and milestones*, not tasks. Each phase lists its goal and a single
-"done when" signal. Phases roughly build on each other but aren't strictly serial.
+Deliberately **coarse**. There's real ambiguity ahead — above all, translating
+the open-ended space of Compose modifiers to and from JSON — so this maps
+*direction and milestones*, not tasks. Each phase has a goal and one "done
+when" signal. Near-term phases (1–2) are backed by exact specs in
+[`specs/`](specs/); later phases intentionally are not, because writing
+detailed plans into ambiguity just creates plans to throw away.
 
 For the project overview and architecture, see [README.md](README.md).
 
 ---
 
-## Phase 0 — Foundation · *largely in place*
+## Phase 0 — Foundation ✅
 
-The core abstractions and a minimal node set (Text, Column, Spacer), the in-memory
-`Model → Factory → Widget → Renderer` path, and a debug traversal visitor.
+Core abstractions and a minimal node set (Text, Column, Spacer); the in-memory
+`Model → Factory → Widget → Renderer` path; a debug traversal visitor.
 
-**Done when:** a hand-built model renders on screen. ✅
+**Done when:** a hand-built model renders on screen. ✅ *(done — with known
+seams; see "Known design tensions" in the README)*
 
-## Phase 1 — Close the JSON loop
+## Phase 1 — The shared contract *(specs [0001](specs/0001-json-wire-format.md), [0002](specs/0002-node-catalog-v1.md), [0003](specs/0003-model-layer-and-serialization.md))*
 
-Make `(de)serialization` real: polymorphic JSON ⇄ Model so a server payload renders
-end-to-end. This is the keystone — it's what makes the thing actually *server-driven*.
+Make the Model layer what it claims to be: pure serializable data, living in
+`shared/commonMain`, with a real polymorphic JSON round-trip and a versioned
+wire format. Text gets its full v1 attribute set (maxLines, fontWeight, color,
+…) here, because the wire format needs one rich node to prove itself against.
 
-**Done when:** `KomposerJson2ModelDemo()` renders from a raw JSON string, and
-`Model → JSON → Model` round-trips losslessly.
+This phase deliberately lands **before** the on-screen JSON demo (they were
+ordered the other way around previously). Reason: the serialization work
+forces API decisions — `KClass` vs `Class`, no Compose imports, no
+platform types — and doing it inside `androidApp` first would mean making
+those decisions twice. It's also the unlock for the whole KMP-first goal: a
+Kotlin backend emitting the very same types.
 
-## Phase 2 — Go multiplatform
+**Done when:** the model + serialization layer compiles for all KMP targets,
+and `JSON ⇄ Model` round-trips losslessly under `commonTest` on every target.
 
-Lift the engine out of `androidApp` into `shared/commonMain`. Models and serialization
-become pure Kotlin (no Compose imports); Compose-coupled rendering stays in the
-platform layer. This is the unlock for a **shared Kotlin backend** that emits the very
-same Model types.
+## Phase 2 — Server-driven on screen *(spec [0004](specs/0004-android-rendering-pipeline.md))*
 
-**Done when:** the model + serialization layer compiles in `commonMain` and is consumed
-unchanged by both the Android and iOS hosts.
+Rebuild the Android pipeline on the shared contract: registry keyed by
+`KClass`, one recursive construction path (no more `toWidget()` bypass),
+factories mapping the full Text attribute set, and `KomposerJson2ModelDemo`
+finally doing what its name says.
+
+**Done when:** a raw JSON string renders as styled pixels on a device, and
+`JSON → Model → Widget → Model → JSON` is lossless for the v1 catalog.
 
 ## Phase 3 — The modifier problem *(the hard one)*
 
-Design a serializable, **ordered** representation of styling/layout that maps to
-Compose `Modifier`. Don't boil the ocean: start with a small, curated allow-list
-(padding, size, background, weight, clickable) and grow it deliberately. Order matters
-in Compose, so the wire format must preserve it.
+Design a serializable, **ordered** representation of styling/layout that maps
+onto Compose `Modifier`. Don't boil the ocean: a small curated allow-list
+(padding, size, background, weight, clickable), grown deliberately. Order
+matters in Compose (`padding().background()` ≠ `background().padding()`), so
+the wire format must be an ordered list, not a bag of properties. Column
+arrangement/alignment land here too, so layout vocabulary is designed once.
 
-**Done when:** a widget's appearance can be meaningfully controlled from JSON via a
-documented, versioned subset of modifiers.
+**Done when:** a widget's appearance can be meaningfully controlled from JSON
+via a documented, versioned subset of modifiers.
 
 ## Phase 4 — Widget catalog & lower friction
 
-Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** collapse the
-"seven places to add a widget" into a single registration. Adding a node should be a
-local, additive change — no editing of central `when` blocks.
+Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** collapse
+what's left of "N places to touch per widget" into a single registration.
+Phases 1–2 already reduce seven places to four (schema, registry, renderer
+`when`, visitor); this phase attacks the rest, so adding a node is a local,
+additive change.
 
-**Done when:** a new widget is added by registering it in one place.
+**Done when:** a new widget ships by registering it in one place.
 
 ## Phase 5 — Interactivity & state
 
-Server-described **actions/events** (navigate, click, fetch) and a real `KomposerState`
-for save/restore. UI as data has to eventually *do* something.
+Server-described **actions/events** (navigate, click, fetch) and a real
+`KomposerState` for save/restore. UI as data eventually has to *do* something.
 
-**Done when:** a JSON-described button can trigger a defined action and survive
-configuration changes.
+**Done when:** a JSON-described button triggers a defined action and the
+screen survives configuration changes.
 
 ## Phase 6 — Backend & tooling
 
-A Kotlin DSL/builders for producing Models server-side, schema **versioning** &
-forward/backward compatibility, payload validation, and authoring previews.
+A Kotlin DSL for producing Models server-side (a sample Ktor endpoint emitting
+shared types would be the proof), schema versioning and forward/backward
+compatibility (including graceful fallback for unknown node types — kept
+deliberately strict until here), payload validation, authoring previews.
 
-**Done when:** the backend can construct and serve a screen using shared Kotlin types
-with validation, and the client renders it with graceful fallback for unknown nodes.
+**Done when:** a backend constructs and serves a screen using shared Kotlin
+types, and the client renders it with graceful fallback for unknown nodes.
+
+---
+
+## Explicitly open (no phase yet)
+
+- **iOS rendering.** `shared` compiles for iOS, but nothing renders there.
+  Compose Multiplatform vs. a native SwiftUI renderer over the same models is
+  a genuinely open call — deferred until the contract is stable.
+- **Theming.** Colors as raw hex are v1 pragmatism; theme references
+  (`"primary"`) need a real theming story.
+- **Non-Kotlin backends.** A generated JSON Schema would decouple the wire
+  format from Kotlin; only worth it if a non-Kotlin producer actually appears.

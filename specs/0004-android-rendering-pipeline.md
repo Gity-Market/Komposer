@@ -1,0 +1,186 @@
+# SPEC-0004 — Android Rendering Pipeline
+
+**Status:** Proposed
+**Depends on:** SPEC-0003 (shared models & serializer)
+**Delivers:** the first true server-driven render — raw JSON string → pixels
+
+## Scope
+
+Rebuild the Android-side pipeline (factories, registry, renderer, demos) on top
+of the shared model layer: `KClass`-keyed registration, one recursive
+construction path, faithful widget→model mapping for the v1 catalog, and a
+`KomposerJson2ModelDemo` that actually runs.
+
+## Non-goals
+
+- Collapsing the renderer/visitor `when`s into the registry (roadmap Phase 4).
+  v1 keeps the `when`s but stops *duplicating* them.
+- Any new node type or modifier support.
+
+---
+
+## 1. Registry keyed by `KClass`
+
+```kotlin
+class FactoryRegistry {
+    private val factories =
+        mutableMapOf<KClass<out KomposerModel>, KomposerWidgetFactory>()
+
+    fun register(modelClass: KClass<out KomposerModel>, factory: KomposerWidgetFactory) {
+        factories[modelClass] = factory
+    }
+
+    inline fun <reified T : KomposerModel> register(factory: KomposerWidgetFactory) =
+        register(T::class, factory)
+
+    fun build(): DefaultKomposerWidgetFactory = DefaultKomposerWidgetFactory(factories)
+}
+```
+
+`java.lang.Class` keys are replaced by `kotlin.reflect.KClass` everywhere
+(`FactoryRegistry`, `DefaultKomposerWidgetFactory`); lookup becomes
+`factories[model::class]`. `KClass` works identically on Android today and is
+the only variant that can follow the registry into `commonMain` later.
+`FactoryRegistry` also graduates out of `NiceToHave.kt` into
+`core/widget/factory/`.
+
+## 2. One construction path, recursive through the registry
+
+`KomposerWidgetFactory` gains a `root` parameter so composite factories recurse
+through the *dispatching* factory instead of the deleted `Model.toWidget()`:
+
+```kotlin
+interface KomposerWidgetFactory {
+    /** [root] is the top-level dispatching factory; composites use it for children. */
+    fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget
+}
+
+class DefaultKomposerWidgetFactory(
+    private val factories: Map<KClass<out KomposerModel>, KomposerWidgetFactory>,
+) : KomposerWidgetFactory {
+    override fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget {
+        val factory = factories[model::class]
+            ?: throw KomposerRenderException("No factory registered for ${model::class.simpleName}")
+        return factory.create(model, root)
+    }
+    fun create(model: KomposerModel): KomposerWidget = create(model, this)
+}
+
+class ColumnWidgetFactory : KomposerWidgetFactory {
+    override fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget {
+        require(model is ColumnModel)
+        return ColumnWidget(
+            children = model.children.map { root.create(it, root) }.toMutableList(),
+        )
+    }
+}
+```
+
+This fixes the silent-bypass bug: a custom factory registered for `TextModel`
+now applies to texts nested inside columns too. Leaf factories ignore `root`.
+`KomposerRenderException` mirrors `KomposerParseException` for the
+construction/render stage.
+
+## 3. Factories become the full mapping layer
+
+**`TextWidgetFactory`** maps *every* SPEC-0002 field, applying Compose defaults
+for absent ones:
+
+| Model field (`null` ⇒) | Widget value |
+| --- | --- |
+| `color` (`Color.Unspecified`) | `parseKomposerColor(str)` — `#RRGGBB`/`#AARRGGBB` → `Color` |
+| `fontSize`/`letterSpacing`/`lineHeight` (`TextUnit.Unspecified`) | `value.sp` |
+| `fontWeight` (`null`) | `FontWeight(value)` |
+| `fontStyle`/`textDecoration`/`textAlign`/`overflow` | exhaustive `when` over the enum |
+| `softWrap` (`true`), `maxLines` (`Int.MAX_VALUE`), `minLines` (`1`) | direct |
+
+`parseKomposerColor` lives beside the factory (Compose-typed, so Android layer),
+with its own unit test.
+
+**`SpacerWidgetFactory`** drops its `Density` constructor parameter — dp on the
+wire means `SpacerWidget(model.height.dp)`, no density conversion. (This also
+unblocks registering factories outside a composition; today the registry needs
+`LocalDensity.current` just to exist.)
+
+**`SpacerWidgetFactory`** moves from `TextWidgetFactory.kt` into its own file.
+
+## 4. Faithful `toModel()` for the v1 catalog
+
+`toModel()` stays on `KomposerWidget` (client-side authoring → JSON is a real
+use case for a Kotlin-first SDUI), but it stops lying:
+
+- `TextWidget.toModel()` maps all v1 fields back (Color → hex string via
+  `toArgb()`, `FontWeight` → int, enums reversed). `modifier`, `style`,
+  `onTextLayout` are excluded by design (SPEC-0002).
+- `SpacerWidget.toModel()` returns the real height (`pxDp.value`), replacing
+  the hardcoded `26f`.
+
+**Invariant (tested):** for every model `m` in the v1 catalog built from JSON,
+`registry.build().create(m).toModel() == m`. Together with SPEC-0001 §6 this
+closes the full loop: `JSON → model → widget → model → JSON` lossless for v1.
+
+## 5. Renderer & visitor cleanup
+
+- **`RenderColumn` stops re-implementing dispatch.** Its private `when` over
+  child types becomes `widget.getChildren().forEach { KomposerRenderer(it) }`.
+  After this, exactly **one** render dispatch exists (`KomposerRenderer`'s
+  `when` — still a `when`, by choice, until Phase 4).
+- `KomposerRenderer`'s `when` gets an `else` that throws
+  `KomposerRenderException` — a widget with no render branch is a programming
+  error and must fail loudly in development, not vanish.
+- **`@Composable` comes off the visitor.** `KomposerWidget.Accept` and
+  `KomposerWidgetVisitor.Visit` do no composition — `GraphBuilder` just builds
+  a string. De-composing them lets traversal run anywhere (tests, background
+  threads) and stops `KomposerModelDemo` from re-logging the graph on every
+  recomposition.
+
+## 6. The demo becomes real
+
+`KomposerJson2ModelDemo()` in `MainActivity.kt`:
+
+```kotlin
+@Composable
+fun KomposerJson2ModelDemo() {
+    val registry = remember {
+        FactoryRegistry().apply {
+            register<ColumnModel>(ColumnWidgetFactory())
+            register<TextModel>(TextWidgetFactory())
+            register<SpacerModel>(SpacerWidgetFactory())
+        }
+    }
+    val widget = remember {
+        val document = DefaultKomposerSerializer().parse(REFERENCE_JSON) // SPEC-0001 §7
+        registry.build().create(document.root)
+    }
+    KomposerRenderer(widget)
+}
+```
+
+- The JSON sample is replaced by the SPEC-0001 §7 reference payload (the old
+  sample has no `type` discriminators and no envelope — it was never valid).
+- `remember { }` around parse/build: deserialization must not re-run on every
+  recomposition. (Now possible because no factory needs `LocalDensity`.)
+- `MainActivity` switches `setContent` to `KomposerJson2ModelDemo()` — the
+  JSON path becomes the primary demo; the in-memory demo stays as a secondary
+  `@Preview`.
+
+## Migration notes
+
+- Every `Model.toWidget()` call site is rewritten to go through the registry.
+- The Persian comment in `MainActivity.kt` about the registry being the single
+  place to add widgets is kept — after SPEC-0003/0004 it's *closer* to true
+  (schema + registry + renderer `when` + visitor = 4 places, down from 7), and
+  Phase 4 finishes the job.
+- `DefaultKomposerJsonFactory` (NiceToHave) is deleted: serializer + registry
+  compose the same behavior without a third abstraction.
+
+## Acceptance criteria
+
+- [ ] `KomposerJson2ModelDemo` renders the reference payload on a device or
+      emulator — a raw JSON string ends as pixels. (Screenshot in the PR.)
+- [ ] Every text attribute in the reference payload is visibly applied
+      (weight 700, ellipsized single line, italic nested text, 16dp gap).
+- [ ] Round-trip invariant of §4 passes as a unit test over the v1 catalog.
+- [ ] No `Density` needed to register factories; registry construction works
+      outside composition.
+- [ ] `./gradlew :androidApp:assembleDebug` and `:androidApp:lint` pass.
