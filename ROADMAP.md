@@ -34,7 +34,9 @@ those decisions twice. It's also the unlock for the whole KMP-first goal: a
 Kotlin backend emitting the very same types.
 
 **Done when:** the model + serialization layer compiles for all KMP targets,
-and `JSON ⇄ Model` round-trips losslessly under `commonTest` on every target.
+and `JSON ⇄ Model` round-trips losslessly under `commonTest` on every target
+(everyday loop: `:shared:testDebugUnitTest`; the iOS targets run via
+`:shared:allTests` on macOS).
 
 ## Phase 2 — Server-driven on screen *(spec [0004](specs/0004-android-rendering-pipeline.md))*
 
@@ -44,7 +46,8 @@ factories mapping the full Text attribute set, and `KomposerJson2ModelDemo`
 finally doing what its name says.
 
 **Done when:** a raw JSON string renders as styled pixels on a device, and
-`JSON → Model → Widget → Model → JSON` is lossless for the v1 catalog.
+`JSON → Model → Widget → Model → JSON` is lossless for the v1 catalog's
+canonical payloads ([SPEC-0004 §4](specs/0004-android-rendering-pipeline.md)).
 
 ## Phase 3 — The modifier problem *(the hard one)*
 
@@ -62,9 +65,10 @@ via a documented, versioned subset of modifiers.
 
 Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** collapse
 what's left of "N places to touch per widget" into a single registration.
-Phases 1–2 already reduce seven places to four (schema, registry, renderer
-`when`, visitor); this phase attacks the rest, so adding a node is a local,
-additive change.
+Phases 1–2 already reduce seven places to five (schema, factory registry,
+renderer `when`, widget visitor, model visitor); this phase attacks the rest —
+a generic `visit(model)` fallback on the model visitor is one candidate — so
+adding a node is a local, additive change.
 
 **Done when:** a new widget ships by registering it in one place.
 
@@ -78,13 +82,21 @@ screen survives configuration changes.
 
 ## Phase 6 — Backend & tooling
 
-A Kotlin DSL for producing Models server-side (a sample Ktor endpoint emitting
-shared types would be the proof), schema versioning and forward/backward
-compatibility (including graceful fallback for unknown node types — kept
-deliberately strict until here), payload validation, authoring previews.
+First enabler, deliberately deferred until here: **add a `jvm()` target to
+`shared/build.gradle.kts`** — today `shared` compiles only for Android and the
+three iOS targets, so no Kotlin/JVM backend can even depend on the shared
+models. It's a one-line change, kept out of Phase 1 so an untested target isn't
+carried through the contract-stabilization phases.
 
-**Done when:** a backend constructs and serves a screen using shared Kotlin
-types, and the client renders it with graceful fallback for unknown nodes.
+Then: a Kotlin DSL for producing Models server-side (a sample Ktor endpoint
+emitting shared types would be the proof), schema versioning and
+forward/backward compatibility (including graceful fallback for unknown node
+types — kept deliberately strict until here), payload validation, authoring
+previews.
+
+**Done when:** a backend (on the new `jvm()` target) constructs and serves a
+screen using shared Kotlin types, and the client renders it with graceful
+fallback for unknown nodes.
 
 ---
 

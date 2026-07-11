@@ -67,4 +67,4 @@ The factory registry comment in `MainActivity.kt` claims "only one place to add"
 
 - Package root: `ir.gity.komposer` (shared/common code), `ir.gity.komposer.android` (Android app entry points). Namespaces are set in each module's `build.gradle.kts`.
 - Some inline comments are written in Persian (Farsi). Preserve them when editing surrounding code unless asked otherwise.
-- Branches on the `Gity-Market/Komposer` remote: `master` (default), `develop`, `playground`. Use `playground` for experimental work in line with what's already on the remote.
+- Branches on the `Gity-Market/Komposer` remote: `master` (default) and `develop` (currently trailing `master`).

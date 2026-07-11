@@ -19,7 +19,8 @@ Each spec carries a status:
 - **Accepted** — agreed; changes require touching the spec first.
 - **Implemented** — code matches the spec; the spec becomes documentation.
 
-All four specs are currently **Proposed**.
+All four specs are **Accepted** (reviewed and revised 2026-07); each flips to
+**Implemented** as its acceptance criteria are met in code.
 
 ## Suggested implementation order
 

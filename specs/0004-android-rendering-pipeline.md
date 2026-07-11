@@ -1,6 +1,6 @@
 # SPEC-0004 — Android Rendering Pipeline
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-11)
 **Depends on:** SPEC-0003 (shared models & serializer)
 **Delivers:** the first true server-driven render — raw JSON string → pixels
 
@@ -33,7 +33,7 @@ class FactoryRegistry {
     inline fun <reified T : KomposerModel> register(factory: KomposerWidgetFactory) =
         register(T::class, factory)
 
-    fun build(): DefaultKomposerWidgetFactory = DefaultKomposerWidgetFactory(factories)
+    fun build(): DefaultKomposerWidgetFactory = DefaultKomposerWidgetFactory(factories.toMap())
 }
 ```
 
@@ -42,7 +42,9 @@ class FactoryRegistry {
 `factories[model::class]`. `KClass` works identically on Android today and is
 the only variant that can follow the registry into `commonMain` later.
 `FactoryRegistry` also graduates out of `NiceToHave.kt` into
-`core/widget/factory/`.
+`core/widget/factory/`. Note `build()` snapshots the registrations
+(`factories.toMap()`): a `register()` call after `build()` must not mutate a
+factory already handed out.
 
 ## 2. One construction path, recursive through the registry
 
@@ -68,7 +70,7 @@ class DefaultKomposerWidgetFactory(
 
 class ColumnWidgetFactory : KomposerWidgetFactory {
     override fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget {
-        require(model is ColumnModel)
+        require(model is ColumnModel) { "ColumnWidgetFactory received ${model::class.simpleName}" }
         return ColumnWidget(
             children = model.children.map { root.create(it, root) }.toMutableList(),
         )
@@ -79,7 +81,9 @@ class ColumnWidgetFactory : KomposerWidgetFactory {
 This fixes the silent-bypass bug: a custom factory registered for `TextModel`
 now applies to texts nested inside columns too. Leaf factories ignore `root`.
 `KomposerRenderException` mirrors `KomposerParseException` for the
-construction/render stage.
+construction/render stage. Every type-mismatch `require` carries a message
+naming the factory and the class it received, so a mis-registration doesn't
+surface as a bare `Failed requirement`.
 
 ## 3. Factories become the full mapping layer
 
@@ -95,7 +99,10 @@ for absent ones:
 | `softWrap` (`true`), `maxLines` (`Int.MAX_VALUE`), `minLines` (`1`) | direct |
 
 `parseKomposerColor` lives beside the factory (Compose-typed, so Android layer),
-with its own unit test.
+with its own unit test. Implement it by parsing the hex digits into a `Long`
+and calling `Color(...)` directly — pure Kotlin against compose-ui, so the test
+runs on the JVM; `android.graphics.Color.parseColor` would drag the Android
+framework (Robolectric) into what should be a plain unit test.
 
 **`SpacerWidgetFactory`** drops its `Density` constructor parameter — dp on the
 wire means `SpacerWidget(model.height.dp)`, no density conversion. (This also
@@ -112,12 +119,38 @@ use case for a Kotlin-first SDUI), but it stops lying:
 - `TextWidget.toModel()` maps all v1 fields back (Color → hex string via
   `toArgb()`, `FontWeight` → int, enums reversed). `modifier`, `style`,
   `onTextLayout` are excluded by design (SPEC-0002).
-- `SpacerWidget.toModel()` returns the real height (`pxDp.value`), replacing
+- `SpacerWidget.toModel()` returns the real height (`height.value`), replacing
   the hardcoded `26f`.
 
-**Invariant (tested):** for every model `m` in the v1 catalog built from JSON,
-`registry.build().create(m).toModel() == m`. Together with SPEC-0001 §6 this
-closes the full loop: `JSON → model → widget → model → JSON` lossless for v1.
+**Exact equality is impossible for every model, and the spec must say so.**
+`TextWidget` stores non-nullable Compose values with real defaults
+(`overflow = TextOverflow.Clip`, `softWrap = true`, `maxLines = Int.MAX_VALUE`,
+`minLines = 1`), so a model with `"overflow": "clip"` set explicitly and one
+with `overflow` absent build *identical* widgets — `toModel()` cannot tell them
+apart. Likewise a 6-digit wire color (`"#6200EE"`) comes back from `toArgb()`
+as 8-digit. The invariant is therefore defined over **canonical** models:
+
+> A model is **canonical** when every optional field is either absent (`null`)
+> or set to a value that differs from SPEC-0002's "Default when absent" column,
+> and every color is written as 8-digit uppercase `#AARRGGBB`.
+
+`toModel()` **normalizes** to canonical form:
+
+| Widget value | Model field becomes |
+| --- | --- |
+| `Color.Unspecified` / `TextUnit.Unspecified` | `null` |
+| `overflow == TextOverflow.Clip` | `null` |
+| `softWrap == true` | `null` |
+| `maxLines == Int.MAX_VALUE` / `minLines == 1` | `null` |
+| `TextDecoration.None` | `"none"` (a real wire value, distinguishable from `null` — kept faithful) |
+| any other `Color` | 8-digit uppercase `#AARRGGBB` |
+
+**Invariant (tested):** for every **canonical** model `m` in the v1 catalog,
+`registry.build().create(m).toModel() == m`; for *every* model,
+`create(m).toModel()` is its canonical form, renders identically to `m`, and
+normalization is idempotent (applying `toModel ∘ create` twice equals applying
+it once). Together with SPEC-0001 §6 this closes the full loop:
+`JSON → model → widget → model → JSON` lossless for canonical v1 payloads.
 
 ## 5. Renderer & visitor cleanup
 
@@ -125,14 +158,19 @@ closes the full loop: `JSON → model → widget → model → JSON` lossless fo
   child types becomes `widget.getChildren().forEach { KomposerRenderer(it) }`.
   After this, exactly **one** render dispatch exists (`KomposerRenderer`'s
   `when` — still a `when`, by choice, until Phase 4).
+- **`RenderText` starts forwarding `minLines`.** The widget field exists today
+  but is never passed to Compose `Text`, so it silently does nothing —
+  SPEC-0002's "every attribute visibly applied" acceptance would fail. It gains
+  `minLines = widget.minLines`.
 - `KomposerRenderer`'s `when` gets an `else` that throws
   `KomposerRenderException` — a widget with no render branch is a programming
   error and must fail loudly in development, not vanish.
 - **`@Composable` comes off the visitor.** `KomposerWidget.Accept` and
   `KomposerWidgetVisitor.Visit` do no composition — `GraphBuilder` just builds
   a string. De-composing them lets traversal run anywhere (tests, background
-  threads) and stops `KomposerModelDemo` from re-logging the graph on every
-  recomposition.
+  threads) and *lets* `KomposerModelDemo` hoist its graph dump out of
+  recomposition — the hoist itself is a demo change (see Migration notes);
+  removing `@Composable` alone doesn't stop the re-logging.
 
 ## 6. The demo becomes real
 
@@ -169,8 +207,18 @@ fun KomposerJson2ModelDemo() {
 - Every `Model.toWidget()` call site is rewritten to go through the registry.
 - The Persian comment in `MainActivity.kt` about the registry being the single
   place to add widgets is kept — after SPEC-0003/0004 it's *closer* to true
-  (schema + registry + renderer `when` + visitor = 4 places, down from 7), and
-  Phase 4 finishes the job.
+  (schema + factory registry + renderer `when` + widget visitor + **model
+  visitor** = 5 places, down from 7; SPEC-0003 promotes `KomposerModelVisitor`
+  into `shared`, and its per-type overloads are a mandatory touch-point for
+  every new node). Phase 4 finishes the job — a generic
+  `visit(model: KomposerModel)` fallback on the model visitor is one candidate.
+- `SpacerWidget.pxDp: Dp` is renamed `height: Dp` — the old name is a fossil of
+  the pixel bug this spec removes.
+- `KomposerModelDemo`: widget construction and the graph dump move inside
+  `remember { }` (log via `SideEffect` if it should fire once per composition);
+  `SpacerModel(px = LocalDensity.current.run { 16.dp.toPx() })` becomes
+  `SpacerModel(height = 16f)`; `SpacerWidgetFactory` is registered without a
+  `density` argument.
 - `DefaultKomposerJsonFactory` (NiceToHave) is deleted: serializer + registry
   compose the same behavior without a third abstraction.
 
@@ -180,7 +228,8 @@ fun KomposerJson2ModelDemo() {
       emulator — a raw JSON string ends as pixels. (Screenshot in the PR.)
 - [ ] Every text attribute in the reference payload is visibly applied
       (weight 700, ellipsized single line, italic nested text, 16dp gap).
-- [ ] Round-trip invariant of §4 passes as a unit test over the v1 catalog.
+- [ ] Round-trip invariant of §4 passes as a unit test over canonical variants
+      of the v1 catalog, plus an idempotence test for non-canonical models.
 - [ ] No `Density` needed to register factories; registry construction works
       outside composition.
 - [ ] `./gradlew :androidApp:assembleDebug` and `:androidApp:lint` pass.
