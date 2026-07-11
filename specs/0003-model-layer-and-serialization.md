@@ -1,6 +1,6 @@
 # SPEC-0003 — Model Layer & Serialization in KMP
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-11)
 **Depends on:** SPEC-0001 (wire format), SPEC-0002 (node fields)
 **Enables:** SPEC-0004 (Android pipeline), the future Kotlin backend
 
@@ -109,11 +109,17 @@ goal (roadmap Phase 4); the render-level half is the factory registry.
 data class KomposerDocument(
     val version: Int,          // no default — required on the wire, always encoded
     val root: KomposerModel,
-)
+) {
+    init { require(version == 1) { "Unsupported wire version: $version" } }
+}
 ```
 
-Parsing a document with `version != 1` throws `KomposerParseException`
-(checked in `init`).
+The check is a plain `require`, not a `KomposerParseException` thrown from
+`init`: the `model/` package must not depend on `serialization/`, and a backend
+*constructing* an unsupported document should get an ordinary
+`IllegalArgumentException`, not a "parse" error. During parsing the serializer
+wraps it into `KomposerParseException` (§5), preserving the message SPEC-0001
+§1 promises.
 
 ## 5. Serializer API
 
@@ -158,6 +164,19 @@ class KomposerParseException(message: String, cause: Throwable? = null)
 One exception type for "the payload is bad" gives callers a single catch point
 regardless of whether kotlinx or an `init` check rejected it.
 
+Two implementation notes, both verified against kotlinx.serialization semantics:
+
+- **`encodeNode`/`parseNode` must go through
+  `PolymorphicSerializer(KomposerModel::class)`** (or a call whose static type
+  is the `KomposerModel` interface). Encoding a node via its concrete class
+  serializer writes **no `type` discriminator** — silently producing JSON that
+  can never be parsed back.
+- **Validation uses `require`, never `check`.** `require` throws
+  `IllegalArgumentException`, and `SerializationException` is itself a
+  documented subclass of `IllegalArgumentException` — so a single
+  `catch (e: IllegalArgumentException)` covers both failure sources. `check`'s
+  `IllegalStateException` would escape the wrapper.
+
 ## 6. Tests (`commonTest`, run on all targets)
 
 | Test | Asserts |
@@ -181,10 +200,15 @@ Run with `./gradlew :shared:allTests` (iOS-target tests require macOS;
 2. `TextModel.text` becomes required `String` (was `String? = null`).
 3. `SpacerModel.px: Float` becomes `height: Float` in dp.
 4. Delete from `NiceToHave.kt`: `KomposerSerializer`, `DefaultKomposerSerializer`,
-   `KomposerModelVisitor` (moved), `DefaultKomposerJsonFactory`,
-   `DefaultKomposerMapper`, `KomposerWidgetMapper` (the factory registry *is*
-   the mapper — two stub mapper classes duplicating it are deleted, not
-   finished). `KomposerEngine`, `KomposerState`, `Specification` stay parked.
+   `KomposerModelVisitor` (moved), `KomposerJsonFactory` +
+   `DefaultKomposerJsonFactory`, `KomposerMapper` + `DefaultKomposerMapper`,
+   `KomposerWidgetMapper` (the factory registry *is* the mapper — stub mapper
+   classes duplicating it are deleted, not finished), and **`KomposerEngine`**
+   (its constructor takes the deleted serializer/mapper interfaces, so keeping
+   it would not compile; serializer + registry already compose its behavior).
+   Only `KomposerState`, `Specification`/`NonEmptyTextSpecification`, and
+   `createTextWidget` stay parked. (In `createTextWidget`, `model.text ?: ""`
+   becomes a redundant elvis once `text` is non-null — drop it in passing.)
 5. `androidApp` compiles against the shared models (it already depends on
    `:shared`); every `it.toWidget()` call site breaks → fixed by SPEC-0004 §2.
 
@@ -193,8 +217,20 @@ Run with `./gradlew :shared:allTests` (iOS-target tests require macOS;
 - [ ] `shared` compiles for `androidTarget`, `iosX64`, `iosArm64`,
       `iosSimulatorArm64` with the model + serialization layer inside.
 - [ ] No Compose, Android, or `java.*` import anywhere under
-      `shared/src/commonMain/.../core/`.
+      `shared/src/commonMain/.../core/` (verify:
+      `grep -rE 'import (androidx|android|java)\.' shared/src/commonMain/`
+      returns nothing).
 - [ ] All §6 tests pass via `:shared:testDebugUnitTest` (and `:shared:allTests`
       on macOS).
 - [ ] `androidApp` builds and `KomposerModelDemo` still renders, now consuming
       shared models.
+
+## Open questions (deliberately deferred)
+
+- **`jvm()` target.** `shared` currently compiles for `androidTarget` and the
+  three iOS targets only — a Kotlin/JVM backend (Ktor, Spring) **cannot depend
+  on these models** until a `jvm()` target is added to
+  `shared/build.gradle.kts`. That is a one-line build change, deliberately
+  deferred to roadmap Phase 6 rather than carried untested through Phases 1–5.
+  Nothing in this spec blocks it: the "no Compose/Android/`java.*` imports"
+  criterion above is exactly what keeps the future target trivial.

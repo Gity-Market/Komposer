@@ -1,6 +1,6 @@
 # SPEC-0001 — JSON Wire Format v1
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-11)
 **Depends on:** —
 **Implemented by:** SPEC-0003 (serializer), SPEC-0002 (node fields)
 
@@ -42,6 +42,9 @@ Every payload is a **document**: a JSON object with exactly two required fields.
   (`"Unsupported wire version: N"`). Forward-compat policy is deferred until a
   version 2 exists; being strict now is what makes leniency possible later.
 - `version` is always written on encode, never omitted.
+- The `"children": []` in the example is illustrative — an empty column may
+  also omit `children` entirely; both parse identically, and the canonical
+  *encoding* omits it (`encodeDefaults = false`, §4).
 
 Rationale: an envelope from day one costs one nesting level and buys us schema
 evolution, per-screen metadata (title, cache hints), and multi-root documents
@@ -66,6 +69,9 @@ Every node is a JSON object with a required `"type"` string field. v1 types:
 - A node whose `type` is missing or unregistered fails parsing with
   `KomposerParseException`. (The current demo JSON in `MainActivity.kt` has no
   `type` fields — it was never parseable and must be updated; see SPEC-0004.)
+- `type` is **reserved**: no node may declare a wire field named `type`. It
+  collides with the class discriminator, and kotlinx.serialization rejects such
+  a class at encode time.
 
 ## 3. Scalar conventions
 
@@ -102,6 +108,7 @@ alpha `FF`. Anything else fails parsing.
 | --- | --- |
 | Unknown `type` | **Fail** (`KomposerParseException`) |
 | Unknown *field* on a known node | **Ignore** (`ignoreUnknownKeys = true`) |
+| Explicit `null` for an optional field | **Accept** — treated as absent |
 | Missing required field | **Fail** |
 | Value out of range / bad format | **Fail** (validation in model `init`, see SPEC-0002 §4) |
 | `version != 1` | **Fail** |

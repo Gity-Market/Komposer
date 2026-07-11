@@ -97,7 +97,11 @@ currently lives in `androidApp/src/main/java/ir/gity/komposer/core/`**. The
 `shared/` module still holds only the template `Greeting`/`Platform` code.
 Moving the model + serialization layer into `shared/commonMain` is Phase 1 of
 the roadmap and is specified in
-[SPEC-0003](specs/0003-model-layer-and-serialization.md).
+[SPEC-0003](specs/0003-model-layer-and-serialization.md). Note the target list,
+too: `shared` compiles for Android and the three iOS targets only — the
+"Kotlin backend shares the types" headline additionally needs a `jvm()` target
+on `shared`, a one-line build change deliberately deferred to
+[roadmap Phase 6](ROADMAP.md#phase-6--backend--tooling).
 
 `core/base/NiceToHave.kt` is a deliberate scratchpad of half-finished
 abstractions (`KomposerEngine`, `KomposerState`, mappers, the JSON factory).
@@ -130,7 +134,8 @@ because they explain *why* the specs change what they change.
 4. **Widgets carry non-data.** `TextWidget` holds `Modifier`, `TextStyle`, and
    an `onTextLayout` lambda — unserializable by nature, so `toModel()` is
    lossy today. → *Those stay widget-only by design; `toModel()` becomes
-   faithful for the specified attribute set (SPEC-0002, SPEC-0004 §4).*
+   faithful for the specified attribute set — exact for canonical payloads,
+   with client-side defaults normalizing to absent (SPEC-0002, SPEC-0004 §4).*
 5. **Dispatch is duplicated.** Type-`when`s live in `KomposerRenderer`,
    *again* in `RenderColumn`, and again in `GraphBuilder` — three switches to
    update per new widget, and they can drift apart.
@@ -204,7 +209,8 @@ a static framework named `shared`.
 
 - **Packages:** `ir.gity.komposer` for shared/common code,
   `ir.gity.komposer.android` for Android entry points.
-- **Branches:** `master` (default), `develop`, `playground` (experimental work).
+- **Branches:** `master` (default); `develop` exists but currently trails
+  `master`.
 - **Comments:** some inline comments are in **Persian (Farsi)** — preserve them
   when editing surrounding code unless asked otherwise.
 - **Specs before code:** changes to the wire format or public engine API go

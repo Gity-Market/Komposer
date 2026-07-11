@@ -1,6 +1,6 @@
 # SPEC-0002 — Node Catalog v1
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-11)
 **Depends on:** SPEC-0001 (wire conventions)
 **Implemented by:** SPEC-0003 (models), SPEC-0004 (mapping to Compose)
 
@@ -70,6 +70,8 @@ Enums are `@Serializable` Kotlin enum classes in `commonMain`, one per closed
 set, with `@SerialName` carrying the wire token:
 
 ```kotlin
+// @Serializable is required here: entry-level @SerialName is honored only by
+// the plugin-generated enum serializer.
 @Serializable
 enum class FontStyleValue {
     @SerialName("normal") Normal,
@@ -96,6 +98,9 @@ wire or in `TextModel`:
 - `text` is **required and non-null** — this is a breaking change from today's
   `TextModel(val text: String? = null)`. An empty string is legal;
   `NonEmptyTextSpecification` remains a pattern demo, not an enforced rule.
+- Explicitly setting an optional field to its client-side default (e.g.
+  `"overflow": "clip"`) is legal and renders correctly, but is *non-canonical*:
+  the widget layer normalizes it back to absent on `toModel()` (SPEC-0004 §4).
 
 ## 2. `column`
 
@@ -160,24 +165,29 @@ data class SpacerModel(
 
 ## 4. Validation
 
-Rules live in model `init` blocks (pure Kotlin, so they run in `commonMain` and
-fire during deserialization, surfacing as `KomposerParseException` per
-SPEC-0003 §5):
+Rules live in model `init` blocks **using `require`** (pure Kotlin, so they run
+in `commonMain`; kotlinx.serialization invokes `init` blocks during
+deserialization exactly like a regular constructor, so a bad payload fails at
+parse time). `require` throws `IllegalArgumentException`, which SPEC-0003 §5
+wraps into `KomposerParseException`. Never use `check` here — its
+`IllegalStateException` would escape that wrapper.
 
 | Node | Rule |
 | --- | --- |
 | `text` | `color` matches `^#([0-9a-fA-F]{6}\|[0-9a-fA-F]{8})$` when present |
 | `text` | `fontWeight in 1..1000` when present |
 | `text` | `maxLines >= 1`, `minLines >= 1`, `maxLines >= minLines` (when both present) |
-| `text` | `fontSize`, `letterSpacing`, `lineHeight` are finite and `> 0` when present |
+| `text` | `fontSize`, `lineHeight` are finite and `> 0` when present |
+| `text` | `letterSpacing` is finite when present (zero and *negative* tracking are legal typography) |
 | `spacer` | `height >= 0` and finite |
 
 Enum tokens are validated by serialization itself (unknown token ⇒ failure).
 
 ## Acceptance criteria
 
-- [ ] A fully-populated `text` node (every field set) round-trips and renders
-      with every attribute visibly applied.
+- [ ] A fully-populated `text` node (every field set) round-trips `JSON ⇄ model`
+      (SPEC-0003) and renders with every attribute visibly applied. (The
+      widget-level round-trip is SPEC-0004 §4's and holds for canonical values.)
 - [ ] A minimal `{"type":"text","text":"hi"}` renders identically to
       `Text("hi")` with all defaults.
 - [ ] Each validation rule in §4 has a test proving the bad payload fails to parse.
