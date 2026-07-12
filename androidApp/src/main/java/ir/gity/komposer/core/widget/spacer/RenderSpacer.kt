@@ -11,6 +11,6 @@ fun RenderSpacer(widget: SpacerWidget) {
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
-            .height(widget.pxDp)
+            .height(widget.height)
     )
 }

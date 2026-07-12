@@ -5,23 +5,22 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import ir.gity.komposer.Greeting
 import ir.gity.komposer.core.KomposerWidget
-import ir.gity.komposer.core.base.DefaultKomposerJsonFactory
-import ir.gity.komposer.core.base.DefaultKomposerSerializer
-import ir.gity.komposer.core.base.FactoryRegistry
 import ir.gity.komposer.core.model.column.ColumnModel
 import ir.gity.komposer.core.model.spacer.SpacerModel
 import ir.gity.komposer.core.model.text.TextModel
 import ir.gity.komposer.core.renderer.KomposerRenderer
+import ir.gity.komposer.core.serialization.DefaultKomposerSerializer
 import ir.gity.komposer.core.visitor.GraphBuilder
 import ir.gity.komposer.core.widget.factory.ColumnWidgetFactory
+import ir.gity.komposer.core.widget.factory.FactoryRegistry
 import ir.gity.komposer.core.widget.factory.SpacerWidgetFactory
 import ir.gity.komposer.core.widget.factory.TextWidgetFactory
 
@@ -34,92 +33,79 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    KomposerModelDemo()
+                    // The JSON path is now the primary demo: raw JSON string → pixels.
+                    KomposerJson2ModelDemo()
                 }
             }
         }
     }
-
-
 }
 
-@Composable
-private fun KomposerModelDemo() {
-    val model = ColumnModel(
-        children = listOf(
-            TextModel(text = "Hello World"),
-            TextModel(text = "Hello World"),
-            TextModel(text = "Hello World"),
-            TextModel(text = "Hello World"),
-            SpacerModel(
-                px = LocalDensity.current.run { 16.dp.toPx() }
-            ),
-            ColumnModel(
-                children = listOf(
-                    TextModel(text = "Hello World"),
-                    TextModel(text = "Hello World"),
-                    TextModel(text = "Hello World"),
-                    TextModel(text = "Hello World")
-                )
-            )
-        )
-    )
-    val factoryRegistry = FactoryRegistry().apply {
-        register(ColumnModel::class.java, ColumnWidgetFactory())
-        register(TextModel::class.java, TextWidgetFactory())
-        register(
-            SpacerModel::class.java, SpacerWidgetFactory(
-                density = LocalDensity.current
-            )
-        )
-        // هر تعداد ویجت جدیدی که اضافه شد، فقط همینجا اضافه می‌شه
-    }
-    val widget: KomposerWidget = factoryRegistry.build().create(model)
-    val graph = GraphBuilder()
-    graph.Visit(widget)
-    Log.i(TAG, "KomposerModelDemo: " + graph.build())
-    KomposerRenderer(widget = widget)
+/** Registers the v1 catalog. No `Density` needed — works outside a composition. */
+private fun v1Registry(): FactoryRegistry = FactoryRegistry().apply {
+    register<ColumnModel>(ColumnWidgetFactory())
+    register<TextModel>(TextWidgetFactory())
+    register<SpacerModel>(SpacerWidgetFactory())
+    // هر تعداد ویجت جدیدی که اضافه شد، فقط همینجا اضافه می‌شه
 }
 
 @Composable
 private fun KomposerJson2ModelDemo() {
-    val jsonString = """
-    {
-      "children": [
-        {"text": "Hello Vahid"},
-        {"text": "Hello World"},
-        {"text": "Hello Vahid"},
-        {"text": "Hello Vahid"},
-        {"px": 16.0},
-        {
-          "children": [
-            {"text": "Nested Hello Vahid"},
-            {"text": "Nested Hello Vahid"}
-          ]
-        }
-      ]
+    // remember: deserialization + widget construction must not re-run on recomposition.
+    val widget = remember {
+        val document = DefaultKomposerSerializer().parse(REFERENCE_JSON)
+        v1Registry().build().create(document.root)
     }
-    """
-
-    val factoryRegistry = FactoryRegistry().apply {
-        register(ColumnModel::class.java, ColumnWidgetFactory())
-        register(TextModel::class.java, TextWidgetFactory())
-        register(
-            SpacerModel::class.java, SpacerWidgetFactory(
-                density = LocalDensity.current
-            )
-        )
-        // هر تعداد ویجت جدیدی که اضافه شد، فقط همینجا اضافه می‌شه
-    }
-
-    val jsonFactory = DefaultKomposerJsonFactory(
-        serializer = DefaultKomposerSerializer(),
-        widgetFactories = factoryRegistry.build().widgetFactories
-    )
-
-    val widget = jsonFactory.createFromJson(jsonString)
     KomposerRenderer(widget = widget)
 }
+
+@Composable
+private fun KomposerModelDemo() {
+    val widget: KomposerWidget = remember {
+        val model = ColumnModel(
+            children = listOf(
+                TextModel(text = "Hello World"),
+                TextModel(text = "Hello World"),
+                TextModel(text = "Hello World"),
+                TextModel(text = "Hello World"),
+                SpacerModel(height = 16f),
+                ColumnModel(
+                    children = listOf(
+                        TextModel(text = "Hello World"),
+                        TextModel(text = "Hello World"),
+                        TextModel(text = "Hello World"),
+                        TextModel(text = "Hello World")
+                    )
+                )
+            )
+        )
+        v1Registry().build().create(model)
+    }
+    val graph = remember(widget) { GraphBuilder().apply { Visit(widget) }.build() }
+    SideEffect { Log.i(TAG, "KomposerModelDemo: $graph") }
+    KomposerRenderer(widget = widget)
+}
+
+/** SPEC-0001 §7 reference payload. */
+private val REFERENCE_JSON = """
+{
+  "version": 1,
+  "root": {
+    "type": "column",
+    "children": [
+      { "type": "text", "text": "Hello Komposer", "fontWeight": 700, "fontSize": 20, "color": "#6200EE" },
+      { "type": "text", "text": "One line only, ellipsized when it overflows the width", "maxLines": 1, "overflow": "ellipsis" },
+      { "type": "spacer", "height": 16 },
+      {
+        "type": "column",
+        "children": [
+          { "type": "text", "text": "Nested, italic", "fontStyle": "italic" }
+        ]
+      }
+    ]
+  }
+}
+""".trimIndent()
 
 @Preview(showBackground = true)
 @Composable
@@ -128,6 +114,5 @@ fun DefaultPreview() {
         KomposerModelDemo()
     }
 }
-
 
 private const val TAG = "MainActivity"

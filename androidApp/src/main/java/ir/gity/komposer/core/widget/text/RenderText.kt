@@ -20,6 +20,7 @@ fun RenderText(widget: TextWidget) {
         overflow = widget.overflow,
         softWrap = widget.softWrap,
         maxLines = widget.maxLines,
+        minLines = widget.minLines,
         onTextLayout = widget.onTextLayout,
         style = widget.style
     )
