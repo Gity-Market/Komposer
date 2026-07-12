@@ -10,6 +10,7 @@ and acceptance criteria precise enough that implementation is mostly transcripti
 | [0002](0002-node-catalog-v1.md) | Node catalog v1 | Exact fields for `text` (rich), `column`, `spacer`; validation; Compose mapping | Phase 1 |
 | [0003](0003-model-layer-and-serialization.md) | Model layer & serialization in KMP | Moving models to `shared/commonMain`, purifying `KomposerModel`, the real serializer, tests | Phase 1 |
 | [0004](0004-android-rendering-pipeline.md) | Android rendering pipeline | `KClass` registry, factory recursion, renderer cleanup, working JSON demo | Phase 2 |
+| [0005](0005-modifier-system.md) | Modifier system v1 | Ordered `modifiers` list, the v1 allow-list (padding/size/fill/background/weight), column arrangement/alignment, the render-time fold | Phase 3 |
 
 ## Status & lifecycle
 
@@ -19,10 +20,16 @@ Each spec carries a status:
 - **Accepted** — agreed; changes require touching the spec first.
 - **Implemented** — code matches the spec; the spec becomes documentation.
 
-All four specs are **Implemented** (2026-07-12): the model + serialization layer
+Specs 0001–0004 are **Implemented** (2026-07-12): the model + serialization layer
 lives in `shared/commonMain`, and the Android pipeline renders the reference
 payload from raw JSON. The one deferred check is iOS *test execution* (compiles
 for all iOS targets; running the KMP tests needs full Xcode).
+
+Spec 0005 is **Proposed** — the Phase 3 design, awaiting review. Phases 4–6
+stay deliberately spec-less per the roadmap's philosophy; the seams they will
+pick up (Row scope adapters, allow-list growth, `clickable` → Phase 5) are
+recorded in SPEC-0005's forward notes and open questions rather than in
+premature specs of their own.
 
 ## Suggested implementation order
 
@@ -31,6 +38,9 @@ for all iOS targets; running the KMP tests needs full Xcode).
    implement them inside 0003's structure.
 2. **0004** then rebuilds the Android side on top of the shared contract and makes
    the JSON demo real.
+3. **0005** splits the same way its predecessors did: modifier models,
+   validation, and round-trip tests in `shared` first; then the fold, scope,
+   and renderer changes in `androidApp`.
 
 Each spec ends with acceptance criteria. A spec is not done until all of its
 criteria pass.
