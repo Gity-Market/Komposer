@@ -1,6 +1,5 @@
 package ir.gity.komposer.core
 
-import androidx.compose.runtime.Composable
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 
@@ -8,8 +7,7 @@ import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 interface KomposerWidget {
     fun toModel(): KomposerModel
 
-    @Composable
-    fun Accept(
-        visitor: KomposerWidgetVisitor
-    )
+    // Not @Composable: traversal builds data (e.g. a debug graph), not UI, so it can run
+    // anywhere — tests, background threads (SPEC-0004 §5).
+    fun Accept(visitor: KomposerWidgetVisitor)
 }

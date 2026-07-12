@@ -1,6 +1,5 @@
 package ir.gity.komposer.core.widget.column
 
-import androidx.compose.runtime.Composable
 import ir.gity.komposer.core.KomposerWidget
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.column.ColumnModel
@@ -27,7 +26,6 @@ class ColumnWidget(
         return ColumnModel(_children.map { it.toModel() })
     }
 
-    @Composable
     override fun Accept(visitor: KomposerWidgetVisitor) {
         visitor.Visit(this)
         _children.forEach { it.Accept(visitor = visitor) }

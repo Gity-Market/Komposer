@@ -1,6 +1,6 @@
 # SPEC-0003 — Model Layer & Serialization in KMP
 
-**Status:** Accepted (2026-07-11)
+**Status:** Implemented (2026-07-12)
 **Depends on:** SPEC-0001 (wire format), SPEC-0002 (node fields)
 **Enables:** SPEC-0004 (Android pipeline), the future Kotlin backend
 

@@ -1,6 +1,6 @@
 # SPEC-0001 — JSON Wire Format v1
 
-**Status:** Accepted (2026-07-11)
+**Status:** Implemented (2026-07-12)
 **Depends on:** —
 **Implemented by:** SPEC-0003 (serializer), SPEC-0002 (node fields)
 

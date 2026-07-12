@@ -4,5 +4,6 @@ import ir.gity.komposer.core.KomposerWidget
 import ir.gity.komposer.core.model.KomposerModel
 
 interface KomposerWidgetFactory {
-    fun create(model: KomposerModel): KomposerWidget
+    /** [root] is the top-level dispatching factory; composites use it for their children. */
+    fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget
 }
