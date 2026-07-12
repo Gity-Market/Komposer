@@ -19,8 +19,10 @@ Each spec carries a status:
 - **Accepted** — agreed; changes require touching the spec first.
 - **Implemented** — code matches the spec; the spec becomes documentation.
 
-All four specs are **Accepted** (reviewed and revised 2026-07); each flips to
-**Implemented** as its acceptance criteria are met in code.
+All four specs are **Implemented** (2026-07-12): the model + serialization layer
+lives in `shared/commonMain`, and the Android pipeline renders the reference
+payload from raw JSON. The one deferred check is iOS *test execution* (compiles
+for all iOS targets; running the KMP tests needs full Xcode).
 
 ## Suggested implementation order
 

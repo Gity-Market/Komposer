@@ -1,6 +1,6 @@
 # SPEC-0004 — Android Rendering Pipeline
 
-**Status:** Accepted (2026-07-11)
+**Status:** Implemented (2026-07-12)
 **Depends on:** SPEC-0003 (shared models & serializer)
 **Delivers:** the first true server-driven render — raw JSON string → pixels
 

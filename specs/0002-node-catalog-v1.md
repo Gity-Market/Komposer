@@ -1,6 +1,6 @@
 # SPEC-0002 — Node Catalog v1
 
-**Status:** Accepted (2026-07-11)
+**Status:** Implemented (2026-07-12)
 **Depends on:** SPEC-0001 (wire conventions)
 **Implemented by:** SPEC-0003 (models), SPEC-0004 (mapping to Compose)
 
