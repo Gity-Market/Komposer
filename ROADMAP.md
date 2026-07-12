@@ -3,7 +3,7 @@
 Deliberately **coarse**. There's real ambiguity ahead — above all, translating
 the open-ended space of Compose modifiers to and from JSON — so this maps
 *direction and milestones*, not tasks. Each phase has a goal and one "done
-when" signal. Near-term phases (1–2) are backed by exact specs in
+when" signal. Near-term phases (1–3) are backed by exact specs in
 [`specs/`](specs/); later phases intentionally are not, because writing
 detailed plans into ambiguity just creates plans to throw away.
 
@@ -49,14 +49,17 @@ finally doing what its name says.
 `JSON → Model → Widget → Model → JSON` is lossless for the v1 catalog's
 canonical payloads ([SPEC-0004 §4](specs/0004-android-rendering-pipeline.md)).
 
-## Phase 3 — The modifier problem *(the hard one)*
+## Phase 3 — The modifier problem *(the hard one — spec [0005](specs/0005-modifier-system.md))*
 
 Design a serializable, **ordered** representation of styling/layout that maps
 onto Compose `Modifier`. Don't boil the ocean: a small curated allow-list
-(padding, size, background, weight, clickable), grown deliberately. Order
+(padding, size, fill, background, weight), grown deliberately. Order
 matters in Compose (`padding().background()` ≠ `background().padding()`), so
 the wire format must be an ordered list, not a bag of properties. Column
 arrangement/alignment land here too, so layout vocabulary is designed once.
+(`clickable` was originally listed here; SPEC-0005 §2.6 moves it to Phase 5 —
+a click without an action vocabulary would either lie on the wire or pre-empt
+the event design.)
 
 **Done when:** a widget's appearance can be meaningfully controlled from JSON
 via a documented, versioned subset of modifiers.
@@ -76,6 +79,8 @@ adding a node is a local, additive change.
 
 Server-described **actions/events** (navigate, click, fetch) and a real
 `KomposerState` for save/restore. UI as data eventually has to *do* something.
+The `clickable` modifier deferred from Phase 3 lands here — its wire token is
+already reserved ([SPEC-0005 §2.6](specs/0005-modifier-system.md)).
 
 **Done when:** a JSON-described button triggers a defined action and the
 screen survives configuration changes.
