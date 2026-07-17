@@ -39,7 +39,8 @@ one node — **Text** — gets a genuinely rich attribute set (`maxLines`,
 `fontWeight`, `color`, `overflow`, …) to prove the wire format against a real
 composable, while everything else stays minimal until the
 [modifier problem](ROADMAP.md#phase-3--the-modifier-problem-the-hard-one) is
-tackled on its own terms.
+tackled on its own terms — now designed in
+[SPEC-0005](specs/0005-modifier-system.md), the next implementation target.
 
 ---
 
@@ -82,36 +83,45 @@ Three node types exist today: **Text**, **Column** (the composite), **Spacer**.
 
 This is early, exploratory code, and honesty about the seams is a feature.
 
-**✅ Working — the in-memory path.** `KomposerModelDemo()` in `MainActivity.kt`
-builds a `ColumnModel` by hand, runs it through the `FactoryRegistry` to get a
-widget tree, walks it with `GraphBuilder` for a debug dump, and renders it with
-`KomposerRenderer`. This draws on screen.
+**✅ Working — the JSON path (Phases 1–2, SPEC-0001–0004).**
+`KomposerJson2ModelDemo()` in `MainActivity.kt` is the primary demo: a raw JSON
+document (the [SPEC-0001 §7](specs/0001-json-wire-format.md) reference payload)
+is parsed by `DefaultKomposerSerializer`, built into a widget tree through the
+`FactoryRegistry`, and rendered as styled pixels.
+`JSON → Model → Widget → Model → JSON` is lossless for canonical v1 payloads,
+tested in `commonTest` and `androidApp` unit tests.
 
-**🚧 Not working yet — the JSON path.** `DefaultKomposerSerializer` is
-`TODO()`, so `KomposerJson2ModelDemo()` — the *actual* server-driven entry
-point — does not run. This is the next thing to build, and it is fully
-specified: see [`specs/`](specs/).
+**✅ Working — the in-memory path.** `KomposerModelDemo()` builds a
+`ColumnModel` by hand, runs it through the same registry, walks it with
+`GraphBuilder` for a debug dump, and renders it. Kept as an `@Preview`.
 
-**🧭 Not multiplatform yet.** Despite the KMP skeleton, **all engine code
-currently lives in `androidApp/src/main/java/ir/gity/komposer/core/`**. The
-`shared/` module still holds only the template `Greeting`/`Platform` code.
-Moving the model + serialization layer into `shared/commonMain` is Phase 1 of
-the roadmap and is specified in
-[SPEC-0003](specs/0003-model-layer-and-serialization.md). Note the target list,
-too: `shared` compiles for Android and the three iOS targets only — the
-"Kotlin backend shares the types" headline additionally needs a `jvm()` target
-on `shared`, a one-line build change deliberately deferred to
+**✅ Multiplatform where it counts.** The model + serialization layer lives in
+`shared/src/commonMain` — pure Kotlin, no Compose/Android/`java.*` imports —
+and compiles for Android and the three iOS targets. Compose-typed code
+(widgets, factories, renderer, visitor) stays in `androidApp` by design until
+the rendering story goes multiplatform. One caveat: a Kotlin *backend* sharing
+the types still needs a `jvm()` target on `shared`, a one-line build change
+deliberately deferred to
 [roadmap Phase 6](ROADMAP.md#phase-6--backend--tooling).
 
-`core/base/NiceToHave.kt` is a deliberate scratchpad of half-finished
-abstractions (`KomposerEngine`, `KomposerState`, mappers, the JSON factory).
-Treat it as a design sketch, not stable API — pieces graduate out of it (or get
-deleted) as specs make them real.
+**🚧 Next — the modifier problem (Phase 3).** Styling/layout from the wire is
+designed in [SPEC-0005](specs/0005-modifier-system.md): an ordered `modifiers`
+list, a small curated allow-list (padding, size, fill, background, weight), and
+the column arrangement/alignment vocabulary. The spec is **Accepted, not yet
+implemented** — until it lands, two interim hardcodes remain
+(`RenderColumn`/`RenderSpacer` apply `fillMaxWidth()`).
+
+`core/base/NiceToHave.kt` is a deliberate scratchpad of the remaining
+half-finished sketches (`KomposerState` for Phase 5, the `Specification` seed).
+The serializer, mappers, engine, JSON factory, model visitor, and factory
+registry have all graduated out of it (or been deleted) as specs made them
+real.
 
 ## Known design tensions
 
-Found in review; each is resolved by a specific spec decision. Kept here
-because they explain *why* the specs change what they change.
+Found in review of the Phase 0 code; each was resolved by a specific spec
+decision and fixed in the Phase 1–2 implementation. Kept here because they
+explain *why* the specs changed what they changed.
 
 1. **Two competing construction paths.** `Model.toWidget()` and the factory
    registry both build widgets — and they're entangled: `ColumnWidgetFactory`
@@ -153,31 +163,36 @@ because they explain *why* the specs change what they change.
 ## Where things are going
 
 - **[ROADMAP.md](ROADMAP.md)** — direction and milestones, deliberately coarse.
-  Near term: Phase 1 lands the shared KMP contract (models + real JSON
-  round-trip in `commonMain`); Phase 2 rebuilds the Android pipeline on it and
-  renders raw JSON on screen.
-- **[specs/](specs/)** — exact, implementation-ready specs for those two
-  phases: wire format, node catalog (rich Text), the serialization engine, and
-  the rendering pipeline. Field names, defaults, error behavior, acceptance
+  Phases 0–2 are done: the shared KMP contract (models + real JSON round-trip
+  in `commonMain`) and the Android pipeline that renders raw JSON on screen.
+  Next up: Phase 3, the modifier problem.
+- **[specs/](specs/)** — exact, implementation-ready specs.
+  [0001](specs/0001-json-wire-format.md)–[0004](specs/0004-android-rendering-pipeline.md)
+  are **Implemented** and now serve as documentation of the wire format, node
+  catalog, serialization engine, and rendering pipeline;
+  [0005](specs/0005-modifier-system.md) (modifiers) is **Accepted** and is the
+  next implementation target. Field names, defaults, error behavior, acceptance
   criteria — implementation should be mostly transcription.
 
 ## Project layout
 
 ```
 Komposer/
-├── androidApp/                       # Android host + (currently) the whole engine
+├── androidApp/                       # Android host + the Compose-aware half of the engine
 │   └── src/main/java/ir/gity/komposer/
-│       ├── android/MainActivity.kt   # End-to-end wiring + demos
+│       ├── android/MainActivity.kt   # End-to-end wiring + demos (JSON demo is primary)
 │       └── core/
 │           ├── KomposerWidget.kt            # "Element" interface
-│           ├── model/                       # @Serializable Models → moving to shared/ (SPEC-0003)
-│           ├── widget/                      # Widgets + per-widget Render* + factories
+│           ├── widget/                      # Widgets + per-widget Render* + factories/registry
 │           ├── renderer/KomposerRenderer.kt # Widget → Compose dispatch
 │           ├── visitor/                     # Visitor + GraphBuilder (debug traversal)
 │           └── base/NiceToHave.kt           # Scratchpad of future abstractions
-├── shared/                           # KMP module (models + serialization land here)
+├── shared/                           # KMP module — the wire contract
+│   └── src/commonMain/kotlin/ir/gity/komposer/core/
+│       ├── model/                    # @Serializable Models (text/column/spacer) + model visitor
+│       └── serialization/            # KomposerSchema + DefaultKomposerSerializer
 ├── iosApp/                           # iOS host (consumes shared as a static framework)
-├── specs/                            # Exact specs (wire format, nodes, engine, pipeline)
+├── specs/                            # Exact specs — 0001–0004 Implemented, 0005 Accepted
 └── ROADMAP.md
 ```
 
