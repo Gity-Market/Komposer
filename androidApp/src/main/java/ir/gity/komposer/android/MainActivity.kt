@@ -86,20 +86,60 @@ private fun KomposerModelDemo() {
     KomposerRenderer(widget = widget)
 }
 
-/** SPEC-0001 §7 reference payload. */
+/** SPEC-0005 §9 reference payload — the Phase 3 acceptance surface (exercises every v1
+ *  modifier except fillMaxHeight, both column layout fields, order sensitivity, weight scope). */
 private val REFERENCE_JSON = """
 {
   "version": 1,
   "root": {
     "type": "column",
+    "modifiers": [
+      { "type": "fillMaxSize" },
+      { "type": "background", "color": "#F2F2F7" },
+      { "type": "padding", "all": 16 }
+    ],
+    "horizontalAlignment": "center",
     "children": [
-      { "type": "text", "text": "Hello Komposer", "fontWeight": 700, "fontSize": 20, "color": "#6200EE" },
-      { "type": "text", "text": "One line only, ellipsized when it overflows the width", "maxLines": 1, "overflow": "ellipsis" },
-      { "type": "spacer", "height": 16 },
+      { "type": "text", "text": "Hello Komposer, modified", "fontWeight": 700, "fontSize": 20, "color": "#6200EE" },
+      { "type": "spacer", "height": 12 },
+      {
+        "type": "text",
+        "text": "background → padding: the yellow includes this inset",
+        "modifiers": [
+          { "type": "background", "color": "#FFD54F" },
+          { "type": "padding", "horizontal": 12, "vertical": 4 }
+        ]
+      },
+      {
+        "type": "text",
+        "text": "padding → background: the yellow hugs the text",
+        "modifiers": [
+          { "type": "padding", "horizontal": 12, "vertical": 4 },
+          { "type": "background", "color": "#FFD54F" }
+        ]
+      },
+      { "type": "spacer", "height": 12 },
+      {
+        "type": "text",
+        "text": "weighted: fills the leftover vertical space",
+        "modifiers": [
+          { "type": "weight", "value": 1 },
+          { "type": "fillMaxWidth" },
+          { "type": "background", "color": "#E1F5FE" }
+        ]
+      },
       {
         "type": "column",
+        "modifiers": [
+          { "type": "fillMaxWidth", "fraction": 0.5 },
+          { "type": "size", "height": 120 },
+          { "type": "background", "color": "#EDE7F6" },
+          { "type": "padding", "all": 8 }
+        ],
+        "verticalArrangement": "spaceBetween",
         "children": [
-          { "type": "text", "text": "Nested, italic", "fontStyle": "italic" }
+          { "type": "text", "text": "half width, 120dp tall", "fontStyle": "italic" },
+          { "type": "text", "text": "spaceBetween pushes me down", "maxLines": 1, "overflow": "ellipsis" }
         ]
       }
     ]

@@ -2,6 +2,8 @@ package ir.gity.komposer.core.model.text
 
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.KomposerModelVisitor
+import ir.gity.komposer.core.model.WireColor
+import ir.gity.komposer.core.model.modifier.KomposerModifier
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -26,11 +28,12 @@ data class TextModel(
     val softWrap: Boolean? = null,
     val maxLines: Int? = null,
     val minLines: Int? = null,
+    override val modifiers: List<KomposerModifier> = emptyList(),
 ) : KomposerModel {
 
     init {
         color?.let {
-            require(COLOR_REGEX.matches(it)) {
+            require(WireColor.REGEX.matches(it)) {
                 "color must match #RRGGBB or #AARRGGBB, was \"$it\""
             }
         }
@@ -56,10 +59,6 @@ data class TextModel(
     }
 
     override fun accept(visitor: KomposerModelVisitor) = visitor.visit(this)
-
-    companion object {
-        val COLOR_REGEX = Regex("^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
-    }
 }
 
 // @Serializable is required on these enums: entry-level @SerialName is honored only by

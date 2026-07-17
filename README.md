@@ -39,8 +39,8 @@ one node — **Text** — gets a genuinely rich attribute set (`maxLines`,
 `fontWeight`, `color`, `overflow`, …) to prove the wire format against a real
 composable, while everything else stays minimal until the
 [modifier problem](ROADMAP.md#phase-3--the-modifier-problem-the-hard-one) is
-tackled on its own terms — now designed in
-[SPEC-0005](specs/0005-modifier-system.md), the next implementation target.
+tackled on its own terms — designed in
+[SPEC-0005](specs/0005-modifier-system.md) and now implemented (Phase 3).
 
 ---
 
@@ -104,12 +104,17 @@ the types still needs a `jvm()` target on `shared`, a one-line build change
 deliberately deferred to
 [roadmap Phase 6](ROADMAP.md#phase-6--backend--tooling).
 
-**🚧 Next — the modifier problem (Phase 3).** Styling/layout from the wire is
-designed in [SPEC-0005](specs/0005-modifier-system.md): an ordered `modifiers`
-list, a small curated allow-list (padding, size, fill, background, weight), and
-the column arrangement/alignment vocabulary. The spec is **Accepted, not yet
-implemented** — until it lands, two interim hardcodes remain
-(`RenderColumn`/`RenderSpacer` apply `fillMaxWidth()`).
+**🚧 In progress — the modifier problem (Phase 3).** Styling/layout from the
+wire is specified in [SPEC-0005](specs/0005-modifier-system.md): an ordered
+`modifiers` list, a small curated allow-list (padding, size, fill, background,
+weight), and the column arrangement/alignment vocabulary. **The implementation
+has landed on branch `claude/spec-0005-m78pbk`** — the shared modifier models,
+serialization, and the full `commonTest` round-trip/validation suite are in and
+green, and the Android fold/scope/renderer changes are in (the two interim
+`fillMaxWidth()` hardcodes and `TextWidget`'s dead `modifier` field are gone,
+§5.5). The spec stays **Accepted** — its device/`assembleDebug`/`lint`
+acceptance criteria still need a run in an environment with Google-Maven (AGP +
+Compose) access before it flips to Implemented.
 
 `core/base/NiceToHave.kt` is a deliberate scratchpad of the remaining
 half-finished sketches (`KomposerState` for Phase 5, the `Specification` seed).
@@ -165,14 +170,16 @@ explain *why* the specs changed what they changed.
 - **[ROADMAP.md](ROADMAP.md)** — direction and milestones, deliberately coarse.
   Phases 0–2 are done: the shared KMP contract (models + real JSON round-trip
   in `commonMain`) and the Android pipeline that renders raw JSON on screen.
-  Next up: Phase 3, the modifier problem.
+  In progress: Phase 3, the modifier problem (landed on the feature branch).
 - **[specs/](specs/)** — exact, implementation-ready specs.
   [0001](specs/0001-json-wire-format.md)–[0004](specs/0004-android-rendering-pipeline.md)
   are **Implemented** and now serve as documentation of the wire format, node
   catalog, serialization engine, and rendering pipeline;
-  [0005](specs/0005-modifier-system.md) (modifiers) is **Accepted** and is the
-  next implementation target. Field names, defaults, error behavior, acceptance
-  criteria — implementation should be mostly transcription.
+  [0005](specs/0005-modifier-system.md) (modifiers) is **Accepted** with its
+  implementation landed on the feature branch (shared verified & tested; the
+  device/build acceptance criteria await a Google-Maven-capable environment
+  before it flips to Implemented). Field names, defaults, error behavior,
+  acceptance criteria — implementation is mostly transcription.
 
 ## Project layout
 

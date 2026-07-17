@@ -26,8 +26,13 @@ payload from raw JSON. The one deferred check is iOS *test execution* (compiles
 for all iOS targets; running the KMP tests needs full Xcode).
 
 Spec 0005 is **Accepted** (2026-07-17) — the Phase 3 design, reviewed against
-the implemented codebase; implementation is the next step, shared first, then
-`androidApp` (its Migration notes give the order). Phases 4–6 stay deliberately
+the implemented codebase. Its implementation has since landed on branch
+`claude/spec-0005-m78pbk` (shared first, then `androidApp`, per its Migration
+notes): the shared modifier models, layout enums, serialization, and the full
+`commonTest` round-trip/validation suite are in and green, and the Android
+fold/scope/renderer changes are in. It stays **Accepted, not self-marked
+Implemented**, until the device/`assembleDebug`/`lint` acceptance criteria are
+run in an environment with Google-Maven (AGP + Compose) access. Phases 4–6 stay deliberately
 spec-less per the roadmap's philosophy; the seams they will pick up (Row scope
 adapters, allow-list growth, `clickable` → Phase 5) are recorded in SPEC-0005's
 forward notes and open questions rather than in premature specs of their own.
