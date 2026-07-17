@@ -61,6 +61,8 @@ class TextWidgetFactory : KomposerWidgetFactory {
             softWrap = model.softWrap ?: true,
             maxLines = model.maxLines ?: Int.MAX_VALUE,
             minLines = model.minLines ?: 1,
+            // The factory's whole modifier job is a faithful copy (SPEC-0005 §5.1).
+            modifiers = model.modifiers,
         )
     }
 }

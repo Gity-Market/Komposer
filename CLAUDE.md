@@ -22,7 +22,7 @@ The build adds `https://maven.myket.ir` ahead of Google/Maven Central in both `p
 
 `specs/` holds exact, implementation-ready specifications and is the authority on the wire format and engine behavior. **Specs before code:** any change to the wire format or public engine API goes through a spec in `specs/` first, matching the existing format exactly (see `specs/README.md` for the lifecycle, authoring conventions, and the index table — update the index for any new spec). New specs open at **Proposed**, become **Accepted** after review, and **Implemented** only when their acceptance criteria actually pass — never self-mark Implemented.
 
-Current statuses: **SPEC-0001–0004 are Implemented** (Phases 1–2: wire format, node catalog, shared model/serialization, Android rendering pipeline). **SPEC-0005 (modifier system, Phase 3) is Accepted, not yet implemented** — it is the next implementation target; follow its migration notes (shared first, then androidApp).
+Current statuses: **SPEC-0001–0004 are Implemented** (Phases 1–2: wire format, node catalog, shared model/serialization, Android rendering pipeline). **SPEC-0005 (modifier system, Phase 3) is Accepted; its implementation has landed on branch `claude/spec-0005-m78pbk`** — shared models, serialization, and the full `commonTest` suite are in and green; the Android fold/scope/renderer changes are in. The spec stays **Accepted (not self-marked Implemented)** until its device/`assembleDebug`/`lint` acceptance criteria are run in an environment with Google-Maven (AGP + Compose) access.
 
 `ROADMAP.md` is deliberately coarse and current: Phases 0–2 done; Phase 3 = modifiers (SPEC-0005); Phase 4 = widget catalog + collapse registration friction; Phase 5 = interactivity/state (`clickable` lands there, token reserved); Phase 6 = `jvm()` target + backend DSL + graceful unknown-node fallback. iOS rendering, theming, and a generated JSON Schema are explicitly open, no phase.
 
@@ -40,7 +40,8 @@ The engine is split across two modules — this split is the architecture:
 
 ### `shared/src/commonMain/kotlin/ir/gity/komposer/core/` — the wire contract (pure KMP)
 
-- `model/KomposerModel.kt` — non-sealed interface; `accept(KomposerModelVisitor)`. Concrete nodes: `model/text/TextModel.kt` (full v1 attribute set + `@Serializable` wire-enum classes), `model/column/ColumnModel.kt`, `model/spacer/SpacerModel.kt`. All `@Serializable` with `@SerialName` wire tokens; validation is `require` in `init` (never `check`).
+- `model/KomposerModel.kt` — non-sealed interface; `accept(KomposerModelVisitor)` + `val modifiers: List<KomposerModifier>` (SPEC-0005 §4). Concrete nodes: `model/text/TextModel.kt` (full v1 attribute set + `@Serializable` wire-enum classes), `model/column/ColumnModel.kt` (+ `verticalArrangement`/`horizontalAlignment` layout enums in `model/layout/`), `model/spacer/SpacerModel.kt`. All `@Serializable` with `@SerialName` wire tokens; validation is `require` in `init` (never `check`).
+- `model/modifier/` — the ordered modifier system (SPEC-0005): `KomposerModifier` is a **`@Serializable` sealed interface** (the annotation is required for the closed `SealedClassSerializer`; it needs *no* `KomposerSchema` entry — sealing is the registration). Seven `@SerialName` data classes: `PaddingModifier`, `SizeModifier`, `FillMax{Width,Height,Size}Modifier`, `BackgroundModifier`, `WeightModifier`. `model/WireColor.kt` holds the shared color regex (promoted out of `TextModel`).
 - `model/KomposerDocument.kt` — the envelope: required `version` (must be `1`) + `root`.
 - `model/KomposerModelVisitor.kt` — dependency-free visitor over the model tree (usable server-side).
 - `serialization/KomposerSchema.kt` — the single wire-level registration point: `polymorphic(KomposerModel::class)` (never `Any::class`).
@@ -52,7 +53,8 @@ The engine is split across two modules — this split is the architecture:
 
 - `KomposerWidget.kt` — the "Element" in a GoF Visitor; `toModel()` + non-composable `Accept(visitor)`. Concrete widgets under `widget/{text,column,spacer}/`, each with a `Render*` composable. `ColumnWidget` implements `KomposerCompositeWidget` (`addChild`/`removeChild`/`getChildren`).
 - `widget/factory/` — `KomposerWidgetFactory` takes a `root` factory parameter so composites recurse *through the registry* (never construct children directly — that reintroduces the nested-child factory-bypass bug). `FactoryRegistry` is `KClass`-keyed; `build()` snapshots into `DefaultKomposerWidgetFactory`. `KomposerColor.kt`'s `parseKomposerColor` parses hex directly — don't switch it to `android.graphics.Color.parseColor` (drags Robolectric into plain JVM tests).
-- `renderer/KomposerRenderer.kt` — the single render dispatch: a `when` over widget types with else-throws (`KomposerRenderException`). Deliberately still a `when` until Phase 4.
+- `renderer/KomposerRenderer.kt` — the single render dispatch: a `when` over widget types with else-throws (`KomposerRenderException`). Deliberately still a `when` until Phase 4. Threads a `scope: KomposerRenderScope?` down (SPEC-0005 §5.3) so `weight` can reach its parent `ColumnScope`.
+- `renderer/KomposerModifierFold.kt` + `renderer/KomposerRenderScope.kt` — `List<KomposerModifier>.toComposeModifier(scope)` folds the ordered list into a real `Modifier` via one **exhaustive** `when` over the sealed hierarchy (no `else` — the compiler forces a branch per modifier). Widgets store the model list verbatim (`toModel()` on modifiers is identity), so the round-trip is exact for every list; `weight` folds through `KomposerRenderScope` and throws at the root where no scope exists.
 - `visitor/KomposerWidgetVisitor.kt` + `GraphBuilder` — debug traversal; not `@Composable` by design.
 - `base/NiceToHave.kt` — scratchpad of parked sketches (`KomposerState` for Phase 5, the `Specification` seed). Design sketches, not stable API; pieces graduate out as specs make them real.
 
@@ -77,9 +79,9 @@ New files: the model (`shared/.../core/model/<node>/`), the widget + `Render<Nod
 
 Collapsing these five into one registration is roadmap Phase 4 — if a task is "make adding widgets less invasive," that's the friction to attack. Per the spec-before-code rule, a new node also needs a node-catalog spec entry (follow SPEC-0002's format).
 
-### Interim hardcodes (dissolved by SPEC-0005 — don't build on them)
+### Interim hardcodes — dissolved by SPEC-0005 (Phase 3 implementation)
 
-`RenderColumn` and `RenderSpacer` currently hardcode `Modifier.fillMaxWidth()` (flagged in SPEC-0002 as interim), and `TextWidget.modifier: Modifier` is a wire-invisible dead path. SPEC-0005 §5.5 removes all three when Phase 3 is implemented.
+Previously `RenderColumn` and `RenderSpacer` hardcoded `Modifier.fillMaxWidth()` and `TextWidget` carried a wire-invisible `modifier: Modifier` dead path. **All three are now removed** (SPEC-0005 §5.5): the renderers fold the wire `modifiers` list instead, and a bare `column` sizes wrap-content like a bare Compose `Column` (add `{"type":"fillMaxWidth"}` for full width). Node-intrinsic modifiers (`spacer`'s `height`) are appended *after* the folded wire modifiers (§5.4).
 
 ## Repo conventions
 

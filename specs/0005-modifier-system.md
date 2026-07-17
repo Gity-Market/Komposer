@@ -297,11 +297,23 @@ shared/src/commonMain/kotlin/ir/gity/komposer/core/model/
 
 ```kotlin
 // commonMain — no Compose, no Android, no java.* imports (SPEC-0003 §2 rules apply).
-// Not @Serializable: interfaces carry no serializer; kotlinx.serialization treats a
-// sealed interface like a sealed class — properties typed KomposerModifier serialize
-// with closed polymorphism and the configured "type" discriminator, no registration.
+// @Serializable IS required on the sealed base: it is what makes the plugin emit the closed
+// SealedClassSerializer that enumerates the subclasses, so properties typed KomposerModifier
+// serialize with closed polymorphism and the configured "type" discriminator — with no
+// SerializersModule registration. (Without it, kotlinx.serialization falls back to *open*
+// polymorphism and demands a polymorphic(KomposerModifier) module entry, the very registration
+// sealing exists to avoid.)
+@Serializable
 sealed interface KomposerModifier
 ```
+
+> **Implementation correction (verified against kotlinx.serialization 1.8.0):** an earlier
+> draft of this section said the sealed interface should *not* be `@Serializable`. That is
+> wrong — the annotation is what triggers the closed `SealedClassSerializer`; omitting it makes
+> a `List<KomposerModifier>` property resolve to *open* polymorphism and fail at runtime with
+> "Serializer for subclass '…' is not found in the polymorphic scope of 'KomposerModifier'".
+> The annotation is required; the `KomposerSchema` registration is still **not** — that
+> distinction (the point of sealing) is preserved.
 
 `KomposerModel` is a **non-sealed** interface registered in `KomposerSchema` —
 third-party nodes plug in via schema + factory registry. Modifiers get the

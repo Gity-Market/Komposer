@@ -23,5 +23,9 @@ object KomposerSchema {
             subclass(SpacerModel::class)
             // New node types register here.
         }
+        // No `polymorphic(KomposerModifier::class)` block, deliberately (SPEC-0005 §4): the
+        // modifier hierarchy is *sealed*, so kotlinx.serialization derives its closed
+        // polymorphic serializer with the configured "type" discriminator automatically —
+        // there is nothing to register. Do not "fix" this absence.
     }
 }

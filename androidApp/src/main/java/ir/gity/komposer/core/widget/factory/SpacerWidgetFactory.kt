@@ -14,6 +14,7 @@ import ir.gity.komposer.core.widget.spacer.SpacerWidget
 class SpacerWidgetFactory : KomposerWidgetFactory {
     override fun create(model: KomposerModel, root: KomposerWidgetFactory): KomposerWidget {
         require(model is SpacerModel) { "SpacerWidgetFactory received ${model::class.simpleName}" }
-        return SpacerWidget(height = model.height.dp)
+        // Modifiers copy through unchanged (SPEC-0005 §5.1).
+        return SpacerWidget(height = model.height.dp, modifiers = model.modifiers)
     }
 }

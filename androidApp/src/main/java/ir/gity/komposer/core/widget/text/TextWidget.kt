@@ -1,6 +1,5 @@
 package ir.gity.komposer.core.widget.text
 
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextLayoutResult
@@ -14,6 +13,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
 import ir.gity.komposer.core.KomposerWidget
 import ir.gity.komposer.core.model.KomposerModel
+import ir.gity.komposer.core.model.modifier.KomposerModifier
 import ir.gity.komposer.core.model.text.FontStyleValue
 import ir.gity.komposer.core.model.text.TextAlignValue
 import ir.gity.komposer.core.model.text.TextDecorationValue
@@ -24,7 +24,6 @@ import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 
 data class TextWidget(
     val text: String,
-    val modifier: Modifier = Modifier,
     val color: Color = Color.Unspecified,
     val fontSize: TextUnit = TextUnit.Unspecified,
     val fontStyle: FontStyle? = null,
@@ -40,11 +39,15 @@ data class TextWidget(
     val minLines: Int = 1,
     val onTextLayout: ((TextLayoutResult) -> Unit) = {},
     val style: TextStyle = TextStyle.Default,
+    override val modifiers: List<KomposerModifier> = emptyList(),
 ) : KomposerWidget {
 
     // Faithful, normalized to canonical form (SPEC-0004 §4): values equal to Compose
     // defaults collapse to `null` (absent), so a model round-trips to itself when canonical.
-    // `modifier`, `style`, `fontFamily`, `onTextLayout` are excluded from the wire by design.
+    // `modifiers` is copied through verbatim (SPEC-0005 §5.1) — identity, so exact for every
+    // list. `style`, `fontFamily`, `onTextLayout` stay widget-only: no wire counterpart yet.
+    // The old opaque `modifier: Modifier` field is gone (SPEC-0005 §5.5): a wire-invisible
+    // path `toModel()` silently dropped is exactly the "two competing paths" bug class.
     override fun toModel(): KomposerModel {
         return TextModel(
             text = text,
@@ -70,6 +73,7 @@ data class TextWidget(
             softWrap = if (softWrap) null else false,
             maxLines = if (maxLines == Int.MAX_VALUE) null else maxLines,
             minLines = if (minLines == 1) null else minLines,
+            modifiers = modifiers,
         )
     }
 
