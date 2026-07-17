@@ -1,6 +1,6 @@
 # SPEC-0005 — Modifier System v1
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-17)
 **Depends on:** SPEC-0001 (wire conventions), SPEC-0002 (node catalog), SPEC-0003 (shared models & serializer), SPEC-0004 (rendering pipeline)
 **Delivers:** roadmap Phase 3 — a widget's appearance controlled from JSON via a documented, versioned subset of modifiers
 
