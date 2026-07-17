@@ -892,17 +892,29 @@ Breaking or visible; one commit ideally, shared first, then `androidApp`:
 
 ## Open questions (deliberately deferred)
 
+Several of these were cross-checked against Google's Compose Remote
+(`androidx.compose.remote`) before implementation; the full comparison lives in
+[docs/compose-remote-comparison.md](../docs/compose-remote-comparison.md).
+
 - **`clickable` and the action vocabulary** — Phase 5; the wire token is
-  reserved (§2.6). The modifier will be one line once actions exist.
+  reserved (§2.6). The modifier will be one line once actions exist. Prior art:
+  Compose Remote's action model — `clickable(action)` firing a named action
+  string to a single host-side callback, with `CombinedAction` for multi-action
+  gestures — is the proven shape for the Phase 5 design.
 - **`Arrangement.spacedBy`** — the most-wanted layout omission. Needs a
   parameterized-token design; candidates: a sibling `spacing` dp field on
   `column` that is mutually exclusive with `verticalArrangement`, or promoting
   arrangement from a token to an object. Decide when Row lands (same vocabulary,
   Phase 4).
 - **Shape vocabulary** — corner radii for `background`, `clip`, `border`.
-  One design, several consumers; don't ship it piecemeal.
+  One design, several consumers; don't ship it piecemeal. Candidate starting
+  point (per Compose Remote's minimal shape story): `border(width, color,
+  radius)` and a scalar corner radius before per-corner control.
 - **Allow-list growth** — `wrapContent*`, `requiredSize`, `offset`, `alpha`,
-  `aspectRatio` are the likely next entries, via the §2.7 checklist.
+  `aspectRatio` are the likely next entries, via the §2.7 checklist. Compose
+  Remote's shipped catalog additionally suggests `semantics`/
+  `contentDescription` (accessibility — currently homeless on the roadmap) and
+  `rotate`/`scale`.
 - **Pre-render `weight` placement validation** — a `KomposerModelVisitor` pass
   flagging misplaced weights at parse time instead of render time; also the
   first real server-side use of the model visitor.
