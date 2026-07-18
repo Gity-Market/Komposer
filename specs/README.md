@@ -11,6 +11,7 @@ and acceptance criteria precise enough that implementation is mostly transcripti
 | [0003](0003-model-layer-and-serialization.md) | Model layer & serialization in KMP | Moving models to `shared/commonMain`, purifying `KomposerModel`, the real serializer, tests | Phase 1 |
 | [0004](0004-android-rendering-pipeline.md) | Android rendering pipeline | `KClass` registry, factory recursion, renderer cleanup, working JSON demo | Phase 2 |
 | [0005](0005-modifier-system.md) | Modifier system v1 | Ordered `modifiers` list, the v1 allow-list (padding/size/fill/background/weight), column arrangement/alignment, the render-time fold | Phase 3 |
+| [0006](0006-row-node.md) | Row node & spacing | The `row` node (per-axis enums, `RowRenderScope` for weight), the `spacing` field on `row`+`column` (the deferred `spacedBy` decision) | Phase 4 |
 
 ## Status & lifecycle
 
@@ -32,10 +33,12 @@ been run (attempted 2026-07-18: the remote environment's egress policy denies
 `maven.myket.ir`, so no Gradle task can resolve dependencies there; run the
 gate locally or allowlist those hosts).
 
-Phases 4–6 stay deliberately spec-less per the roadmap's philosophy; the seams
-they will pick up (Row scope adapters, allow-list growth, `clickable` → Phase 5)
-are recorded in SPEC-0005's forward notes and open questions rather than in
-premature specs of their own.
+Phase 4's first spec is now open: [0006](0006-row-node.md) (**Proposed**)
+picks up the Row seam SPEC-0005's forward notes recorded, plus the deferred
+`spacedBy` decision. Phases 5–6 stay deliberately spec-less per the roadmap's
+philosophy; their seams (`clickable` → Phase 5, `jvm()` target → Phase 6)
+remain recorded in SPEC-0005's open questions rather than in premature specs
+of their own.
 
 ## Suggested implementation order
 
