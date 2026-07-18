@@ -27,7 +27,10 @@ sides of the split (shared first, then `androidApp`, merged via #9 / `f542d02`).
 Two deferred checks remain: iOS *test execution* (the shared module compiles
 for all iOS targets; running the KMP tests needs full Xcode), and SPEC-0005's
 device/`assembleDebug`/`lint` acceptance criteria (SPEC-0005 §10) have not
-been run in this environment's Google-Maven access.
+been run (attempted 2026-07-18: the remote environment's egress policy denies
+`dl.google.com` — Google Maven, needed for AGP + Compose — and
+`maven.myket.ir`, so no Gradle task can resolve dependencies there; run the
+gate locally or allowlist those hosts).
 
 Phases 4–6 stay deliberately spec-less per the roadmap's philosophy; the seams
 they will pick up (Row scope adapters, allow-list growth, `clickable` → Phase 5)

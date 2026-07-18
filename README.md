@@ -104,17 +104,16 @@ the types still needs a `jvm()` target on `shared`, a one-line build change
 deliberately deferred to
 [roadmap Phase 6](ROADMAP.md#phase-6--backend--tooling).
 
-**🚧 In progress — the modifier problem (Phase 3).** Styling/layout from the
-wire is specified in [SPEC-0005](specs/0005-modifier-system.md): an ordered
-`modifiers` list, a small curated allow-list (padding, size, fill, background,
-weight), and the column arrangement/alignment vocabulary. **The implementation
-has landed on branch `claude/spec-0005-m78pbk`** — the shared modifier models,
-serialization, and the full `commonTest` round-trip/validation suite are in and
-green, and the Android fold/scope/renderer changes are in (the two interim
-`fillMaxWidth()` hardcodes and `TextWidget`'s dead `modifier` field are gone,
-§5.5). The spec stays **Accepted** — its device/`assembleDebug`/`lint`
-acceptance criteria still need a run in an environment with Google-Maven (AGP +
-Compose) access before it flips to Implemented.
+**✅ Working — modifiers from the wire (Phase 3, SPEC-0005).** Styling/layout
+is specified in [SPEC-0005](specs/0005-modifier-system.md) and merged to
+`master` via #9 (`f542d02`): an ordered `modifiers` list, a small curated
+allow-list (padding, size, fill, background, weight), and the column
+arrangement/alignment vocabulary. The shared modifier models, serialization,
+and the full `commonTest` round-trip/validation suite are in and green, and the
+Android fold/scope/renderer changes are in (the two interim `fillMaxWidth()`
+hardcodes and `TextWidget`'s dead `modifier` field are gone, §5.5). One
+deferred check: the §10 device/`assembleDebug`/`lint` acceptance run still
+needs an environment with Google-Maven (AGP + Compose) access.
 
 `core/base/NiceToHave.kt` is a deliberate scratchpad of the remaining
 half-finished sketches (`KomposerState` for Phase 5, the `Specification` seed).
@@ -168,18 +167,17 @@ explain *why* the specs changed what they changed.
 ## Where things are going
 
 - **[ROADMAP.md](ROADMAP.md)** — direction and milestones, deliberately coarse.
-  Phases 0–2 are done: the shared KMP contract (models + real JSON round-trip
-  in `commonMain`) and the Android pipeline that renders raw JSON on screen.
-  In progress: Phase 3, the modifier problem (landed on the feature branch).
+  Phases 0–3 are done: the shared KMP contract (models + real JSON round-trip
+  in `commonMain`), the Android pipeline that renders raw JSON on screen, and
+  the ordered modifier system. Next up: Phase 4 — widget catalog & lower
+  registration friction.
 - **[specs/](specs/)** — exact, implementation-ready specs.
-  [0001](specs/0001-json-wire-format.md)–[0004](specs/0004-android-rendering-pipeline.md)
+  [0001](specs/0001-json-wire-format.md)–[0005](specs/0005-modifier-system.md)
   are **Implemented** and now serve as documentation of the wire format, node
-  catalog, serialization engine, and rendering pipeline;
-  [0005](specs/0005-modifier-system.md) (modifiers) is **Accepted** with its
-  implementation landed on the feature branch (shared verified & tested; the
-  device/build acceptance criteria await a Google-Maven-capable environment
-  before it flips to Implemented). Field names, defaults, error behavior,
-  acceptance criteria — implementation is mostly transcription.
+  catalog, serialization engine, rendering pipeline, and modifier system (one
+  deferred check: SPEC-0005's device/`assembleDebug`/`lint` acceptance run
+  awaits a Google-Maven-capable environment). Field names, defaults, error
+  behavior, acceptance criteria — implementation is mostly transcription.
 
 ## Project layout
 
@@ -199,7 +197,7 @@ Komposer/
 │       ├── model/                    # @Serializable Models (text/column/spacer) + model visitor
 │       └── serialization/            # KomposerSchema + DefaultKomposerSerializer
 ├── iosApp/                           # iOS host (consumes shared as a static framework)
-├── specs/                            # Exact specs — 0001–0004 Implemented, 0005 Accepted
+├── specs/                            # Exact specs — 0001–0005 Implemented
 └── ROADMAP.md
 ```
 
