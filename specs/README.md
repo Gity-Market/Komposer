@@ -12,6 +12,7 @@ and acceptance criteria precise enough that implementation is mostly transcripti
 | [0004](0004-android-rendering-pipeline.md) | Android rendering pipeline | `KClass` registry, factory recursion, renderer cleanup, working JSON demo | Phase 2 |
 | [0005](0005-modifier-system.md) | Modifier system v1 | Ordered `modifiers` list, the v1 allow-list (padding/size/fill/background/weight), column arrangement/alignment, the render-time fold | Phase 3 |
 | [0006](0006-row-node.md) | Row node & spacing | The `row` node (per-axis enums, `RowRenderScope` for weight), the `spacing` field on `row`+`column` (the deferred `spacedBy` decision) | Phase 4 |
+| [0007](0007-node-registration.md) | Single-point node registration | `KomposerNodeRegistration` + `KomposerRegistry` collapsing the five per-node touch-points to one; generic visitor fallbacks; renderer `when` → table | Phase 4 |
 
 ## Status & lifecycle
 
@@ -33,12 +34,14 @@ been run (attempted 2026-07-18: the remote environment's egress policy denies
 `maven.myket.ir`, so no Gradle task can resolve dependencies there; run the
 gate locally or allowlist those hosts).
 
-Phase 4's first spec is now open: [0006](0006-row-node.md) (**Proposed**)
-picks up the Row seam SPEC-0005's forward notes recorded, plus the deferred
-`spacedBy` decision. Phases 5–6 stay deliberately spec-less per the roadmap's
-philosophy; their seams (`clickable` → Phase 5, `jvm()` target → Phase 6)
-remain recorded in SPEC-0005's open questions rather than in premature specs
-of their own.
+Phase 4's specs are now open, both **Proposed**: [0006](0006-row-node.md)
+picks up the Row seam SPEC-0005's forward notes recorded (plus the deferred
+`spacedBy` decision), and [0007](0007-node-registration.md) attacks the
+"five places to touch per node" friction — the phase's other half. Either
+may be implemented first; each records the interplay. Phases 5–6 stay
+deliberately spec-less per the roadmap's philosophy; their seams
+(`clickable` → Phase 5, `jvm()` target → Phase 6) remain recorded in
+SPEC-0005's open questions rather than in premature specs of their own.
 
 ## Suggested implementation order
 
