@@ -62,11 +62,11 @@ a click without an action vocabulary would either lie on the wire or pre-empt
 the event design.)
 
 **Done when:** a widget's appearance can be meaningfully controlled from JSON
-via a documented, versioned subset of modifiers. 🚧 *(in progress — SPEC-0005
-implemented on the feature branch: shared modifier models + serialization +
-`commonTest` suite green; Android fold/scope/renderer landed. Still Accepted,
-not Implemented, until the device/`assembleDebug`/`lint` acceptance criteria run
-in a Google-Maven-capable environment.)*
+via a documented, versioned subset of modifiers. ✅ *(done — SPEC-0005
+implemented on `master` via #9 / `f542d02`: shared modifier models +
+serialization + `commonTest` suite green; Android fold/scope/renderer landed.
+The device/`assembleDebug`/`lint` acceptance criteria (SPEC-0005 §10) remain
+the one gate not yet run, awaiting a Google-Maven-capable environment.)*
 
 ## Phase 4 — Widget catalog & lower friction
 
