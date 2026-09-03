@@ -19,14 +19,14 @@ import ir.gity.komposer.core.model.modifier.KomposerModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.SizeModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
-import ir.gity.komposer.core.widget.factory.parseKomposerColor
+import ir.gity.komposer.core.widget.parseKomposerColor
 
 /**
- * Folds an ordered modifier list into a real Compose [Modifier] (SPEC-0005 §5.2).
+ * Folds an ordered modifier list into a real Compose [Modifier].
  *
- * A left fold ⇒ list order == chain order, the §1 guarantee: `[A, B, C]` → `Modifier.a().b().c()`.
+ * A left fold ⇒ list order == chain order, the wire guarantee: `[A, B, C]` → `Modifier.a().b().c()`.
  * There is **no `else` branch, deliberately** — `KomposerModifier` is sealed, so the `when` is
- * exhaustive and the compiler forces a branch for every new modifier type (§2.7).
+ * exhaustive and the compiler forces a branch for every new modifier type.
  *
  * Pure and non-composable: it runs anywhere, tests included.
  */

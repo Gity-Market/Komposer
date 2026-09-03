@@ -1,4 +1,4 @@
-package ir.gity.komposer.core.widget.factory
+package ir.gity.komposer.core.widget
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb

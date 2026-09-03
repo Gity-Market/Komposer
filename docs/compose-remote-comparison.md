@@ -1,5 +1,14 @@
 # Compose Remote vs Komposer — an architecture comparison
 
+> **Dated snapshot.** This is kept as written, not rewritten. It cites `SPEC-000X §Y`
+> section numbers from the `specs/` directory that Komposer carried through Phase 3;
+> those documents were removed when the Phase 4 architecture simplification landed and
+> now live only in git history. Every wire-format conclusion below still holds — the
+> modifier system it reviews shipped as described, and Phase 4 changed no wire format.
+> What did change is the client-side pipeline: "Model → factory → widget" below is now
+> "Model → `toWidget()` → widget", with the factory and visitor layers deleted. See
+> [README.md](../README.md) for the current architecture.
+
 Written 2026-07-17, as a pre-implementation review for SPEC-0005 (modifier system,
 Phase 3). Compose Remote (`androidx.compose.remote`, historically "RemoteCompose")
 was at `1.0.0-alpha15` at the time of writing; its APIs are explicitly unstable, so

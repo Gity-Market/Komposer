@@ -27,9 +27,11 @@ client renders.
 - **Compose-native rendering.** The output is ordinary Compose — not a
   webview, not a custom canvas — so it themes, recomposes, previews, and
   profiles like any other Compose UI.
-- **A pattern study, on purpose.** The codebase deliberately exercises the
-  classic GoF vocabulary (Composite, Factory, Visitor) so the architecture is
-  easy to name, discuss, and critique.
+- **As little architecture as the job needs.** The codebase started as a
+  deliberate GoF pattern study (Composite, Factory, Visitor). Phase 4 concluded
+  the study: the patterns cost more in ceremony than they bought in flexibility
+  against a closed node catalog, so they were replaced with sealed hierarchies
+  and exhaustive `when` — the same guarantees, checked by the compiler.
 
 ## Scoping principle
 
@@ -39,8 +41,7 @@ one node — **Text** — gets a genuinely rich attribute set (`maxLines`,
 `fontWeight`, `color`, `overflow`, …) to prove the wire format against a real
 composable, while everything else stays minimal until the
 [modifier problem](ROADMAP.md#phase-3--the-modifier-problem-the-hard-one) is
-tackled on its own terms — designed in
-[SPEC-0005](specs/0005-modifier-system.md) and now implemented (Phase 3).
+tackled on its own terms — now implemented (Phase 3).
 
 ---
 
@@ -49,33 +50,40 @@ tackled on its own terms — designed in
 ```
                     ┌────────────── encode() back to JSON ──────────────┐
                     │                                                    │
- JSON ───parse────► KomposerModel ───Factory───► KomposerWidget ───KomposerRenderer───► @Composable
- (wire,             (@Serializable,   (registry,   (Compose-aware        (when
-  versioned)         pure Kotlin)      recursive)   value object)         dispatch)
-                          ▲                              │
-                          └───────── toModel() ◄─────────┘
+ JSON ───parse────► KomposerModel ──toWidget()─► KomposerWidget ───KomposerRenderer───► @Composable
+ (wire,             (@Serializable,  (one        (Compose-aware        (exhaustive
+  versioned)         sealed)          exhaustive  sealed value)         when — no else)
+                          ▲           when)             │
+                          └───────── toModel() ◄────────┘
 ```
 
-- **`KomposerModel`** — the serializable shape of a node. Pure data; the KMP
-  citizen that the backend will share.
-- **`KomposerWidget`** — the in-memory, Compose-aware node. Knows how to turn
-  back into a model (`toModel()`) and accepts a visitor (`Accept`).
-- **`KomposerWidgetFactory`** + **`FactoryRegistry`** — one factory per Model
-  type; the *only* Model → Widget path. Registered per model class, dispatched
-  by map lookup.
+- **`KomposerModel`** — the serializable shape of a node: a `@Serializable`
+  **sealed** interface. Pure data; the KMP citizen the backend will share.
+  Sealing *is* the registration — the compiler plugin emits a closed
+  polymorphic serializer, so there is no schema object to keep in sync.
+- **`KomposerWidget`** — the in-memory, Compose-aware node, also sealed. Its
+  whole job is Compose-typed storage plus `toModel()`.
+- **`KomposerModel.toWidget()`** — the *only* Model → Widget path: one
+  exhaustive `when`, with per-node extensions carrying the mapping. No registry,
+  so there is nothing to register and nothing to bypass.
 - **`KomposerRenderer`** — the single dispatch point from a Widget tree into
-  Compose.
+  Compose; exhaustive over the sealed widgets, so a node without a render branch
+  will not compile.
 
 Three node types exist today: **Text**, **Column** (the composite), **Spacer**.
 
-## Design patterns in play
+## What replaced the patterns
 
-| Pattern | Where | Role |
+Phase 4 traded the GoF layer for language features. The guarantees each pattern
+was there to provide all survive — as compile errors instead of conventions:
+
+| Was | Is now | Guarantee |
 | --- | --- | --- |
-| **Composite** | `ColumnWidget` : `KomposerCompositeWidget` | A node that holds children (`addChild` / `getChildren`). |
-| **Factory** | `KomposerWidgetFactory` + `FactoryRegistry` | One factory per Model class; carries platform context construction needs. |
-| **Visitor** | `KomposerWidgetVisitor` / `GraphBuilder` | Traversal decoupled from node classes; today it dumps a debug graph. |
-| **Specification** | `NonEmptyTextSpecification` | Seed of predicate-style validation (no combinators yet — a sketch, not a framework). |
+| **Composite** — `KomposerCompositeWidget` (`addChild`/`getChildren`) | `ColumnWidget.children: List<KomposerWidget>`, an immutable value | Nothing mutates a widget tree after construction, so the round-trip law is easier to trust. |
+| **Factory** — `KomposerWidgetFactory` + `FactoryRegistry` | `KomposerModel.toWidget()`, one exhaustive `when` | A node without a mapping branch does not compile. No registry ⇒ the nested-child bypass bug is structurally impossible. |
+| **Visitor** ×2 — `KomposerModelVisitor`, `KomposerWidgetVisitor`/`GraphBuilder` | `debugGraph()`, a plain recursive function | The model visitor had zero implementors; `GraphBuilder`'s own dispatch `when` was already the pattern fighting the language. |
+| **Manual registration** — `KomposerSchema` | `@Serializable sealed interface` | Sealing *is* the registration; nothing can be "known on the wire but unknown to the renderer". |
+| **Specification** — `NonEmptyTextSpecification` in `NiceToHave.kt` | deleted with the rest of the scratchpad | Predicate-style validation never grew combinators. If pre-render validation is wanted, it returns as a plain recursive function over the sealed models — see roadmap Phase 4. |
 
 ---
 
@@ -83,84 +91,91 @@ Three node types exist today: **Text**, **Column** (the composite), **Spacer**.
 
 This is early, exploratory code, and honesty about the seams is a feature.
 
-**✅ Working — the JSON path (Phases 1–2, SPEC-0001–0004).**
+**✅ Working — the JSON path (Phases 1–2).**
 `KomposerJson2ModelDemo()` in `MainActivity.kt` is the primary demo: a raw JSON
-document (the [SPEC-0001 §7](specs/0001-json-wire-format.md) reference payload)
-is parsed by `DefaultKomposerSerializer`, built into a widget tree through the
-`FactoryRegistry`, and rendered as styled pixels.
+document (the reference payload) is parsed by `DefaultKomposerSerializer`, built
+into a widget tree by `toWidget()`, and rendered as styled pixels.
 `JSON → Model → Widget → Model → JSON` is lossless for canonical v1 payloads,
 tested in `commonTest` and `androidApp` unit tests.
 
 **✅ Working — the in-memory path.** `KomposerModelDemo()` builds a
-`ColumnModel` by hand, runs it through the same registry, walks it with
-`GraphBuilder` for a debug dump, and renders it. Kept as an `@Preview`.
+`ColumnModel` by hand, runs it through the same `toWidget()`, walks it with
+`debugGraph()` for a debug dump, and renders it. Kept as an `@Preview`.
 
 **✅ Multiplatform where it counts.** The model + serialization layer lives in
 `shared/src/commonMain` — pure Kotlin, no Compose/Android/`java.*` imports —
 and compiles for Android and the three iOS targets. Compose-typed code
-(widgets, factories, renderer, visitor) stays in `androidApp` by design until
+(widgets, mapping, renderer) stays in `androidApp` by design until
 the rendering story goes multiplatform. One caveat: a Kotlin *backend* sharing
 the types still needs a `jvm()` target on `shared`, a one-line build change
 deliberately deferred to
 [roadmap Phase 6](ROADMAP.md#phase-6--backend--tooling).
 
-**✅ Working — modifiers from the wire (Phase 3, SPEC-0005).** Styling/layout
-is specified in [SPEC-0005](specs/0005-modifier-system.md) and merged to
-`master` via #9 (`f542d02`): an ordered `modifiers` list, a small curated
+**✅ Working — a compiler-checked architecture (Phase 4).** Both models and
+widgets are sealed; the schema object, both visitors, the factory layer, and the
+composite interface are deleted; `toWidget()` extensions and exhaustive `when`s
+replace them. Adding a node has **zero** registration points — every remaining
+dispatch branch is one the compiler demands. The wire format is byte-identical:
+the whole serialization suite carried over **unedited**.
+
+**✅ Working — modifiers from the wire (Phase 3).** Styling/layout was merged
+to `master` via #9 (`f542d02`): an ordered `modifiers` list, a small curated
 allow-list (padding, size, fill, background, weight), and the column
 arrangement/alignment vocabulary. The shared modifier models, serialization,
 and the full `commonTest` round-trip/validation suite are in and green, and the
 Android fold/scope/renderer changes are in (the two interim `fillMaxWidth()`
-hardcodes and `TextWidget`'s dead `modifier` field are gone, §5.5). One
-deferred check: the §10 device/`assembleDebug`/`lint` acceptance run still
-needs an environment with Google-Maven (AGP + Compose) access.
+hardcodes and `TextWidget`'s dead `modifier` field are gone).
 
-`core/base/NiceToHave.kt` is a deliberate scratchpad of the remaining
-half-finished sketches (`KomposerState` for Phase 5, the `Specification` seed).
-The serializer, mappers, engine, JSON factory, model visitor, and factory
-registry have all graduated out of it (or been deleted) as specs made them
-real.
+**⚠️ Not yet re-verified in this repo.** The Phase 4 simplification was
+developed and its 64 engine tests run green in a single-module Android port of
+this codebase, then transplanted here (identical packages, different source
+sets). `:shared:testDebugUnitTest`, `:androidApp:testDebugUnitTest`,
+`assembleDebug`, `lint`, and `:shared:allTests` have **not** been run against
+this repo since the transplant — nor has the on-device visual check that Phase 3
+already owed.
 
 ## Known design tensions
 
-Found in review of the Phase 0 code; each was resolved by a specific spec
+Found in review of the Phase 0 code; each was resolved by a specific design
 decision and fixed in the Phase 1–2 implementation. Kept here because they
-explain *why* the specs changed what they changed.
+explain *why* the engine changed what it changed.
 
 1. **Two competing construction paths.** `Model.toWidget()` and the factory
    registry both build widgets — and they're entangled: `ColumnWidgetFactory`
    calls `children.map { it.toWidget() }`, so a custom factory registered for
    `TextModel` is silently bypassed for texts inside a column.
-   → *`toWidget()` is removed; factories recurse through the registry
-   ([SPEC-0003 §2](specs/0003-model-layer-and-serialization.md),
-   [SPEC-0004 §2](specs/0004-android-rendering-pipeline.md)).*
+   → *`toWidget()` was removed and factories recursed through the registry.
+   **Phase 4 went further:** the registry is gone and `toWidget()` came back as
+   the single exhaustive mapping — with no registry there is nothing left to
+   bypass.*
 2. **The demo JSON could never parse.** The sample payload has no type
    discriminators, the serializer registers `polymorphic(Any::class)` instead
    of `polymorphic(KomposerModel::class)`, and `ColumnModel.children` is
    annotated `@Contextual`, which routes it *away* from polymorphism.
-   → *Wire format with a required `"type"` field and a corrected module
-   ([SPEC-0001](specs/0001-json-wire-format.md), SPEC-0003 §3).*
+   → *Wire format with a required `"type"` field and a corrected module.*
 3. **Pixels on the wire.** `SpacerModel.px` bakes device density into a
    server payload; worse, `SpacerModel.toWidget()` ignores it (hardcodes
    `16.dp`) and `SpacerWidget.toModel()` hardcodes `26f`.
-   → *dp on the wire (`height`), faithful mapping both ways
-   ([SPEC-0002 §3](specs/0002-node-catalog-v1.md)).*
+   → *dp on the wire (`height`), faithful mapping both ways.*
 4. **Widgets carry non-data.** `TextWidget` holds `Modifier`, `TextStyle`, and
    an `onTextLayout` lambda — unserializable by nature, so `toModel()` is
    lossy today. → *Those stay widget-only by design; `toModel()` becomes
    faithful for the specified attribute set — exact for canonical payloads,
-   with client-side defaults normalizing to absent (SPEC-0002, SPEC-0004 §4).*
+   with client-side defaults normalizing to absent.*
 5. **Dispatch is duplicated.** Type-`when`s live in `KomposerRenderer`,
    *again* in `RenderColumn`, and again in `GraphBuilder` — three switches to
    update per new widget, and they can drift apart.
    → *`RenderColumn` recurses through `KomposerRenderer`; one render dispatch
-   remains (SPEC-0004 §5). Collapsing the rest is roadmap Phase 4.*
+   remains. **Phase 4 finished the job:** `GraphBuilder` is deleted and every
+   remaining `when` is exhaustive over a sealed type, so the switches can no
+   longer drift apart silently — a missing branch is a compile error.*
 6. **JVM-only reflection in the core.** Registries and the serializer API are
    keyed on `java.lang.Class`, which cannot compile in `commonMain`.
-   → *`KClass` everywhere (SPEC-0003 §5, SPEC-0004 §1).*
+   → *`KClass` everywhere.*
 7. **A `@Composable` visitor.** `Accept`/`Visit` are composable but perform no
    composition, forcing pure traversal into the composition (and re-logging
-   the debug graph every recomposition). → *De-composed in SPEC-0004 §5.*
+   the debug graph every recomposition). → *De-composed in Phase 2; the
+   visitor itself is deleted in Phase 4, replaced by `debugGraph()`.*
 
 ---
 
@@ -169,17 +184,15 @@ explain *why* the specs changed what they changed.
 - **[ROADMAP.md](ROADMAP.md)** — direction and milestones, deliberately coarse.
   Phases 0–3 are done: the shared KMP contract (models + real JSON round-trip
   in `commonMain`), the Android pipeline that renders raw JSON on screen, and
-  the ordered modifier system. Next up: Phase 4 — widget catalog & lower
-  registration friction.
-- **[specs/](specs/)** — exact, implementation-ready specs.
-  [0001](specs/0001-json-wire-format.md)–[0005](specs/0005-modifier-system.md)
-  are **Implemented** and now serve as documentation of the wire format, node
-  catalog, serialization engine, rendering pipeline, and modifier system (one
-  deferred check: SPEC-0005's device/`assembleDebug`/`lint` acceptance run
-  awaits a Google-Maven-capable environment). Field names, defaults, error
-  behavior, acceptance criteria — implementation is mostly transcription.
+  the ordered modifier system. Phase 4 is half done — the architecture
+  simplification landed; growing the node catalog (starting with `row`) is what
+  remains.
 
 ## Project layout
+
+The two halves of the engine are two Gradle modules, and that split *is* the
+architecture: `shared` must stay portable, `androidApp` owns everything
+Compose-typed.
 
 ```
 Komposer/
@@ -187,18 +200,25 @@ Komposer/
 │   └── src/main/java/ir/gity/komposer/
 │       ├── android/MainActivity.kt   # End-to-end wiring + demos (JSON demo is primary)
 │       └── core/
-│           ├── KomposerWidget.kt            # "Element" interface
-│           ├── widget/                      # Widgets + per-widget Render* + factories/registry
-│           ├── renderer/KomposerRenderer.kt # Widget → Compose dispatch
-│           ├── visitor/                     # Visitor + GraphBuilder (debug traversal)
-│           └── base/NiceToHave.kt           # Scratchpad of future abstractions
+│           ├── widget/               # sealed KomposerWidget + widgets, toWidget() mapping,
+│           │                         #   color parsing, debugGraph()
+│           ├── renderer/             # KomposerRenderer + Render* + modifier fold + render scope
+│           └── KomposerRenderException.kt
 ├── shared/                           # KMP module — the wire contract
 │   └── src/commonMain/kotlin/ir/gity/komposer/core/
-│       ├── model/                    # @Serializable Models (text/column/spacer) + model visitor
-│       └── serialization/            # KomposerSchema + DefaultKomposerSerializer
+│       ├── model/                    # sealed KomposerModel + Text/Column/Spacer,
+│       │                             #   KomposerDocument, layout/, modifier/
+│       └── serialization/            # DefaultKomposerSerializer + exceptions
 ├── iosApp/                           # iOS host (consumes shared as a static framework)
-├── specs/                            # Exact specs — 0001–0005 Implemented
 └── ROADMAP.md
+```
+
+Nothing in `shared/src/commonMain` may import `android.*`, `androidx.*`, or
+`java.*` — that is what keeps the wire contract portable, and the iOS targets
+enforce it at compile time. The cheap check:
+
+```bash
+grep -rE 'import (androidx|android|java)\.' shared/src/commonMain/   # must print nothing
 ```
 
 ## Build & run
@@ -233,5 +253,5 @@ a static framework named `shared`.
   `master`.
 - **Comments:** some inline comments are in **Persian (Farsi)** — preserve them
   when editing surrounding code unless asked otherwise.
-- **Specs before code:** changes to the wire format or public engine API go
-  through a spec in [`specs/`](specs/) first.
+- **Wire format changes:** the wire format and public engine API are the
+  contract — change them deliberately, and keep the round-trip tests green.

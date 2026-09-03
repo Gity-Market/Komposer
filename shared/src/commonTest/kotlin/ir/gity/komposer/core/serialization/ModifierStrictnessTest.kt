@@ -1,11 +1,11 @@
 package ir.gity.komposer.core.serialization
 
-import ir.gity.komposer.core.model.text.TextModel
+import ir.gity.komposer.core.model.TextModel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/** SPEC-0005 §8 strictness rows for the `modifiers` field. */
+/** Strictness rows for the `modifiers` field. */
 class ModifierStrictnessTest {
 
     private val serializer = DefaultKomposerSerializer()
@@ -33,7 +33,7 @@ class ModifierStrictnessTest {
 
     @Test
     fun unknownFieldOnKnownModifierIsIgnored() {
-        // ignoreUnknownKeys is global (SPEC-0005 §8) — unknown modifier fields are dropped.
+        // ignoreUnknownKeys is global — unknown modifier fields are dropped.
         val node = serializer.parseNode(
             """{"type":"text","text":"x","modifiers":[{"type":"background","color":"#FFFFFF","glow":true}]}""",
         )

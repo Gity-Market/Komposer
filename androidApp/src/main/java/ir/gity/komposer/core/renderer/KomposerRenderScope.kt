@@ -6,10 +6,10 @@ import androidx.compose.ui.Modifier
 /**
  * `Modifier.weight` is a member of `ColumnScope`/`RowScope`, and those receivers exist only
  * inside the parent's content lambda at composition time. So the *parent's* renderer hands
- * its scope down one level, and a child folds `weight` through it (SPEC-0005 §5.3).
+ * its scope down one level, and a child folds `weight` through it.
  *
  * `null` means "no weight-capable parent" — folding a `weight` then fails loudly
- * (`KomposerRenderException`, SPEC-0005 §2.5), the honest alternative to silently dropping UI.
+ * (`KomposerRenderException`), the honest alternative to silently dropping UI.
  */
 interface KomposerRenderScope {
     fun weight(modifier: Modifier, value: Float, fill: Boolean): Modifier

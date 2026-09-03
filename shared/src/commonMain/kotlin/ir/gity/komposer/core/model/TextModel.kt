@@ -1,15 +1,12 @@
-package ir.gity.komposer.core.model.text
+package ir.gity.komposer.core.model
 
-import ir.gity.komposer.core.model.KomposerModel
-import ir.gity.komposer.core.model.KomposerModelVisitor
-import ir.gity.komposer.core.model.WireColor
 import ir.gity.komposer.core.model.modifier.KomposerModifier
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Maps to `androidx.compose.material3.Text` (SPEC-0002 §1). All optional fields are
- * nullable and default to `null` ("unspecified"); the mapping layer (factory) applies
+ * Maps to `androidx.compose.material3.Text`. All optional fields are
+ * nullable and default to `null` ("unspecified"); the mapping layer (`toWidget()`) applies
  * Compose defaults for absent values, not this model.
  */
 @Serializable
@@ -57,12 +54,10 @@ data class TextModel(
             }
         }
     }
-
-    override fun accept(visitor: KomposerModelVisitor) = visitor.visit(this)
 }
 
 // @Serializable is required on these enums: entry-level @SerialName is honored only by
-// the plugin-generated enum serializer. Tokens are the exact wire strings (SPEC-0002).
+// the plugin-generated enum serializer. Tokens are the exact wire strings.
 
 @Serializable
 enum class FontStyleValue {

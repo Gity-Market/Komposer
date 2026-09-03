@@ -1,14 +1,14 @@
-package ir.gity.komposer.core.widget.factory
+package ir.gity.komposer.core.widget
 
 import androidx.compose.ui.graphics.Color
 import ir.gity.komposer.core.KomposerRenderException
 
 /**
- * Parses a `#RRGGBB` / `#AARRGGBB` wire color (SPEC-0002) into a Compose [Color].
+ * Parses a `#RRGGBB` / `#AARRGGBB` wire color into a Compose [Color].
  *
  * Implemented by parsing the hex digits directly rather than via
  * `android.graphics.Color.parseColor`, which would drag the Android framework
- * (Robolectric) into what is a plain JVM unit test (SPEC-0004 §3).
+ * (Robolectric) into what is a plain JVM unit test.
  */
 fun parseKomposerColor(hex: String): Color {
     val digits = hex.removePrefix("#")

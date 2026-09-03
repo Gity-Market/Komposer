@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Maps to the three `Modifier.padding` overloads (SPEC-0005 §2.1). Exactly one **group** of
+ * Maps to the three `Modifier.padding` overloads. Exactly one **group** of
  * fields may be used per instance, mirroring Compose's overload set — Compose has no
  * "all plus start" overload, so the wire doesn't either.
  *

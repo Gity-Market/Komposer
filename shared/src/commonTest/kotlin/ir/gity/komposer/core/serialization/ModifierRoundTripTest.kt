@@ -1,7 +1,7 @@
 package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.KomposerModel
-import ir.gity.komposer.core.model.column.ColumnModel
+import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.VerticalArrangementValue
 import ir.gity.komposer.core.model.modifier.BackgroundModifier
@@ -12,8 +12,8 @@ import ir.gity.komposer.core.model.modifier.KomposerModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.SizeModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.TextModel
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.TextModel
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -26,7 +26,7 @@ class ModifierRoundTripTest {
     private fun roundTrip(model: KomposerModel): KomposerModel =
         serializer.parseNode(serializer.encodeNode(model))
 
-    /** Round-trips a modifier by attaching it to a carrier node (SPEC-0005 §10). */
+    /** Round-trips a modifier by attaching it to a carrier node. */
     private fun assertModifierRoundTrips(modifier: KomposerModifier) {
         val carrier = TextModel(text = "carrier", modifiers = listOf(modifier))
         assertEquals(carrier, roundTrip(carrier))
@@ -83,7 +83,7 @@ class ModifierRoundTripTest {
 
     @Test
     fun crossGroupPaddingSpellingsAreDistinctAndBothRoundTrip() {
-        // Render identically, but are distinct models and both round-trip exactly (SPEC-0005 §2.1).
+        // Render identically, but are distinct models and both round-trip exactly.
         val horizontal = TextModel(text = "x", modifiers = listOf(PaddingModifier(horizontal = 8f)))
         val edges = TextModel(text = "x", modifiers = listOf(PaddingModifier(start = 8f, end = 8f)))
         assertFalse(horizontal == edges)

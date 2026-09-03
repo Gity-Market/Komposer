@@ -4,7 +4,7 @@ import ir.gity.komposer.core.model.KomposerDocument
 import ir.gity.komposer.core.model.KomposerModel
 
 /**
- * The wire (de)serializer (SPEC-0003 §5). No `Class<T>` parameter: polymorphic parsing
+ * The wire (de)serializer. No `Class<T>` parameter: polymorphic parsing
  * makes a caller-supplied class unnecessary — the `type` discriminator decides.
  */
 interface KomposerSerializer {

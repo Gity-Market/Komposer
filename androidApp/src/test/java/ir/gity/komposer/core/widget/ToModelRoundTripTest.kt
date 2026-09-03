@@ -1,7 +1,13 @@
-package ir.gity.komposer.core.widget.factory
+package ir.gity.komposer.core.widget
 
+import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.FontStyleValue
 import ir.gity.komposer.core.model.KomposerModel
-import ir.gity.komposer.core.model.column.ColumnModel
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.TextAlignValue
+import ir.gity.komposer.core.model.TextDecorationValue
+import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.TextOverflowValue
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.VerticalArrangementValue
 import ir.gity.komposer.core.model.modifier.BackgroundModifier
@@ -9,25 +15,13 @@ import ir.gity.komposer.core.model.modifier.FillMaxSizeModifier
 import ir.gity.komposer.core.model.modifier.FillMaxWidthModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.FontStyleValue
-import ir.gity.komposer.core.model.text.TextAlignValue
-import ir.gity.komposer.core.model.text.TextDecorationValue
-import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.model.text.TextOverflowValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ToModelRoundTripTest {
 
-    private val factory = FactoryRegistry().apply {
-        register<ColumnModel>(ColumnWidgetFactory())
-        register<TextModel>(TextWidgetFactory())
-        register<SpacerModel>(SpacerWidgetFactory())
-    }.build()
-
     private fun roundTrip(model: KomposerModel): KomposerModel =
-        factory.create(model).toModel()
+        model.toWidget().toModel()
 
     private val fullCanonicalText = TextModel(
         text = "everything",
@@ -90,11 +84,11 @@ class ToModelRoundTripTest {
         assertEquals(TextModel(text = "x", color = "#FF6200EE"), roundTrip(model))
     }
 
-    // --- SPEC-0005: modifiers survive exactly; column layout fields normalize ---
+    // --- Modifiers survive exactly; column layout fields normalize ---
 
     @Test
     fun arbitraryModifierListsSurviveRoundTripExactly() {
-        // Widgets store the model list verbatim (SPEC-0005 §5.1), so modifiers are exact for
+        // Widgets store the model list verbatim, so modifiers are exact for
         // *every* list — including one with modifiers on the composite and its children.
         val model = ColumnModel(
             modifiers = listOf(
@@ -119,7 +113,7 @@ class ToModelRoundTripTest {
     @Test
     fun explicitModifierDefaultsAreNotNormalized() {
         // Unlike column layout fields, modifiers are stored verbatim: explicit client-side
-        // defaults (fraction = 1, fill = true) survive rather than collapsing (SPEC-0005 §6).
+        // defaults (fraction = 1, fill = true) survive rather than collapsing.
         val model = TextModel(
             text = "x",
             modifiers = listOf(
@@ -141,7 +135,7 @@ class ToModelRoundTripTest {
 
     @Test
     fun explicitDefaultColumnLayoutNormalizesToAbsent() {
-        // Top / Start equal the Compose defaults → normalize back to absent (SPEC-0005 §6).
+        // Top / Start equal the Compose defaults → normalize back to absent.
         val nonCanonical = ColumnModel(
             verticalArrangement = VerticalArrangementValue.Top,
             horizontalAlignment = HorizontalAlignmentValue.Start,

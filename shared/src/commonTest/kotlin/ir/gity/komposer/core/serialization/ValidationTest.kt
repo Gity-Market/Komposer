@@ -3,7 +3,7 @@ package ir.gity.komposer.core.serialization
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-/** One failing-parse test per SPEC-0002 §4 validation rule. */
+/** One failing-parse test per validation rule. */
 class ValidationTest {
 
     private val serializer = DefaultKomposerSerializer()

@@ -5,7 +5,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Maps to `Modifier.background(color)` (SPEC-0005 §2.4). Solid color only in v1; a shape
+ * Maps to `Modifier.background(color)`. Solid color only in v1; a shape
  * vocabulary is a deferred design (Open questions).
  */
 @Serializable

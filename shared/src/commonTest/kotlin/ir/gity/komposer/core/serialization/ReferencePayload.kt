@@ -1,13 +1,13 @@
 package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.KomposerDocument
-import ir.gity.komposer.core.model.column.ColumnModel
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.FontStyleValue
-import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.model.text.TextOverflowValue
+import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.FontStyleValue
+import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.TextOverflowValue
 
-/** SPEC-0001 §7 reference payload, shared across tests. */
+/** Reference payload, shared across tests. */
 val REFERENCE_JSON = """
 {
   "version": 1,

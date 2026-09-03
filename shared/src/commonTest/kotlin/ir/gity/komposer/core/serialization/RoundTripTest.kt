@@ -1,12 +1,12 @@
 package ir.gity.komposer.core.serialization
 
-import ir.gity.komposer.core.model.column.ColumnModel
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.FontStyleValue
-import ir.gity.komposer.core.model.text.TextAlignValue
-import ir.gity.komposer.core.model.text.TextDecorationValue
-import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.model.text.TextOverflowValue
+import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.FontStyleValue
+import ir.gity.komposer.core.model.TextAlignValue
+import ir.gity.komposer.core.model.TextDecorationValue
+import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.TextOverflowValue
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

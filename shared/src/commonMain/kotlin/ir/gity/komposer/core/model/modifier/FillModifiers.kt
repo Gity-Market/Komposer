@@ -4,7 +4,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * `fillMaxWidth` / `fillMaxHeight` / `fillMaxSize` (SPEC-0005 §2.3): three wire types, one
+ * `fillMaxWidth` / `fillMaxHeight` / `fillMaxSize`: three wire types, one
  * per Compose function. `fraction` defaults to `1` when absent; the `0 ≤ f ≤ 1` range is our
  * wire rule (Compose doesn't validate — we'd rather fail a nonsensical payload loudly).
  */

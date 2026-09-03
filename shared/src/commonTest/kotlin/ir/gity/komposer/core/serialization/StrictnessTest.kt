@@ -1,11 +1,11 @@
 package ir.gity.komposer.core.serialization
 
-import ir.gity.komposer.core.model.text.TextModel
+import ir.gity.komposer.core.model.TextModel
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-/** One dedicated failing-input test per SPEC-0001 §5 strictness rule. */
+/** One dedicated failing-input test per strictness rule. */
 class StrictnessTest {
 
     private val serializer = DefaultKomposerSerializer()

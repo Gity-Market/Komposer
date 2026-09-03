@@ -1,4 +1,4 @@
-package ir.gity.komposer.core.widget.text
+package ir.gity.komposer.core.widget
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -11,15 +11,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
-import ir.gity.komposer.core.KomposerWidget
+import androidx.compose.ui.unit.sp
+import ir.gity.komposer.core.model.FontStyleValue
 import ir.gity.komposer.core.model.KomposerModel
+import ir.gity.komposer.core.model.TextAlignValue
+import ir.gity.komposer.core.model.TextDecorationValue
+import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.TextOverflowValue
 import ir.gity.komposer.core.model.modifier.KomposerModifier
-import ir.gity.komposer.core.model.text.FontStyleValue
-import ir.gity.komposer.core.model.text.TextAlignValue
-import ir.gity.komposer.core.model.text.TextDecorationValue
-import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.model.text.TextOverflowValue
-import ir.gity.komposer.core.visitor.KomposerWidgetVisitor
 
 
 data class TextWidget(
@@ -42,11 +41,11 @@ data class TextWidget(
     override val modifiers: List<KomposerModifier> = emptyList(),
 ) : KomposerWidget {
 
-    // Faithful, normalized to canonical form (SPEC-0004 §4): values equal to Compose
+    // Faithful, normalized to canonical form: values equal to Compose
     // defaults collapse to `null` (absent), so a model round-trips to itself when canonical.
-    // `modifiers` is copied through verbatim (SPEC-0005 §5.1) — identity, so exact for every
+    // `modifiers` is copied through verbatim — identity, so exact for every
     // list. `style`, `fontFamily`, `onTextLayout` stay widget-only: no wire counterpart yet.
-    // The old opaque `modifier: Modifier` field is gone (SPEC-0005 §5.5): a wire-invisible
+    // The old opaque `modifier: Modifier` field is gone: a wire-invisible
     // path `toModel()` silently dropped is exactly the "two competing paths" bug class.
     override fun toModel(): KomposerModel {
         return TextModel(
@@ -77,10 +76,6 @@ data class TextWidget(
         )
     }
 
-    override fun Accept(visitor: KomposerWidgetVisitor) {
-        visitor.Visit(this)
-    }
-
     private fun Color.toHexString(): String {
         val argb = toArgb()
         val digits = argb.toUInt().toString(16).padStart(8, '0').uppercase()
@@ -107,3 +102,48 @@ data class TextWidget(
             else -> null
         }
 }
+
+/** Maps every wire field, applying Compose defaults for absent ones. */
+fun TextModel.toWidget(): TextWidget = TextWidget(
+    text = text,
+    color = color?.let { parseKomposerColor(it) } ?: Color.Unspecified,
+    fontSize = fontSize?.sp ?: TextUnit.Unspecified,
+    fontWeight = fontWeight?.let { FontWeight(it) },
+    fontStyle = fontStyle?.let {
+        when (it) {
+            FontStyleValue.Normal -> FontStyle.Normal
+            FontStyleValue.Italic -> FontStyle.Italic
+        }
+    },
+    letterSpacing = letterSpacing?.sp ?: TextUnit.Unspecified,
+    textDecoration = textDecoration?.let {
+        when (it) {
+            TextDecorationValue.None -> TextDecoration.None
+            TextDecorationValue.Underline -> TextDecoration.Underline
+            TextDecorationValue.LineThrough -> TextDecoration.LineThrough
+        }
+    },
+    textAlign = textAlign?.let {
+        when (it) {
+            TextAlignValue.Start -> TextAlign.Start
+            TextAlignValue.End -> TextAlign.End
+            TextAlignValue.Center -> TextAlign.Center
+            TextAlignValue.Justify -> TextAlign.Justify
+            TextAlignValue.Left -> TextAlign.Left
+            TextAlignValue.Right -> TextAlign.Right
+        }
+    },
+    lineHeight = lineHeight?.sp ?: TextUnit.Unspecified,
+    overflow = overflow?.let {
+        when (it) {
+            TextOverflowValue.Clip -> TextOverflow.Clip
+            TextOverflowValue.Ellipsis -> TextOverflow.Ellipsis
+            TextOverflowValue.Visible -> TextOverflow.Visible
+        }
+    } ?: TextOverflow.Clip,
+    softWrap = softWrap ?: true,
+    maxLines = maxLines ?: Int.MAX_VALUE,
+    minLines = minLines ?: 1,
+    // The mapping's whole modifier job is a faithful copy.
+    modifiers = modifiers,
+)

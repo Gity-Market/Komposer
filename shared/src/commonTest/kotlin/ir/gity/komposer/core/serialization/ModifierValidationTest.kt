@@ -3,7 +3,7 @@ package ir.gity.komposer.core.serialization
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 
-/** One failing-parse test per SPEC-0005 §7 validation rule (modifiers attach to a carrier). */
+/** One failing-parse test per modifier validation rule (modifiers attach to a carrier). */
 class ModifierValidationTest {
 
     private val serializer = DefaultKomposerSerializer()

@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * Maps to `Modifier.width` / `height` / `size` — the constraint-respecting variants, not
- * `required*` (SPEC-0005 §2.2). At least one of `width`/`height` must be present.
+ * `required*`. At least one of `width`/`height` must be present.
  */
 @Serializable
 @SerialName("size")

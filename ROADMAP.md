@@ -3,9 +3,7 @@
 Deliberately **coarse**. There's real ambiguity ahead — above all, translating
 the open-ended space of Compose modifiers to and from JSON — so this maps
 *direction and milestones*, not tasks. Each phase has a goal and one "done
-when" signal. Near-term phases (1–3) are backed by exact specs in
-[`specs/`](specs/); later phases intentionally are not, because writing
-detailed plans into ambiguity just creates plans to throw away.
+when" signal.
 
 For the project overview and architecture, see [README.md](README.md).
 
@@ -19,7 +17,7 @@ Core abstractions and a minimal node set (Text, Column, Spacer); the in-memory
 **Done when:** a hand-built model renders on screen. ✅ *(done — with known
 seams; see "Known design tensions" in the README)*
 
-## Phase 1 — The shared contract *(specs [0001](specs/0001-json-wire-format.md), [0002](specs/0002-node-catalog-v1.md), [0003](specs/0003-model-layer-and-serialization.md))*
+## Phase 1 — The shared contract
 
 Make the Model layer what it claims to be: pure serializable data, living in
 `shared/commonMain`, with a real polymorphic JSON round-trip and a versioned
@@ -38,7 +36,7 @@ and `JSON ⇄ Model` round-trips losslessly under `commonTest` on every target
 (everyday loop: `:shared:testDebugUnitTest`; the iOS targets run via
 `:shared:allTests` on macOS).
 
-## Phase 2 — Server-driven on screen *(spec [0004](specs/0004-android-rendering-pipeline.md))*
+## Phase 2 — Server-driven on screen
 
 Rebuild the Android pipeline on the shared contract: registry keyed by
 `KClass`, one recursive construction path (no more `toWidget()` bypass),
@@ -47,9 +45,9 @@ finally doing what its name says.
 
 **Done when:** a raw JSON string renders as styled pixels on a device, and
 `JSON → Model → Widget → Model → JSON` is lossless for the v1 catalog's
-canonical payloads ([SPEC-0004 §4](specs/0004-android-rendering-pipeline.md)).
+canonical payloads.
 
-## Phase 3 — The modifier problem *(the hard one — spec [0005](specs/0005-modifier-system.md))*
+## Phase 3 — The modifier problem *(the hard one)*
 
 Design a serializable, **ordered** representation of styling/layout that maps
 onto Compose `Modifier`. Don't boil the ocean: a small curated allow-list
@@ -57,34 +55,45 @@ onto Compose `Modifier`. Don't boil the ocean: a small curated allow-list
 matters in Compose (`padding().background()` ≠ `background().padding()`), so
 the wire format must be an ordered list, not a bag of properties. Column
 arrangement/alignment land here too, so layout vocabulary is designed once.
-(`clickable` was originally listed here; SPEC-0005 §2.6 moves it to Phase 5 —
+(`clickable` was originally listed here; it moved to Phase 5 —
 a click without an action vocabulary would either lie on the wire or pre-empt
 the event design.)
 
 **Done when:** a widget's appearance can be meaningfully controlled from JSON
-via a documented, versioned subset of modifiers. ✅ *(done — SPEC-0005
-implemented on `master` via #9 / `f542d02`: shared modifier models +
-serialization + `commonTest` suite green; Android fold/scope/renderer landed.
-The device/`assembleDebug`/`lint` acceptance criteria (SPEC-0005 §10) remain
-the one gate not yet run, awaiting a Google-Maven-capable environment.)*
+via a documented, versioned subset of modifiers. ✅ *(done — merged to
+`master` via #9 / `f542d02`: shared modifier models + serialization +
+`commonTest` suite green; Android fold/scope/renderer landed. The on-device
+visual check is the one gate not yet run.)*
 
-## Phase 4 — Widget catalog & lower friction
+## Phase 4 — Widget catalog & simpler architecture
 
-Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** collapse
-what's left of "N places to touch per widget" into a single registration.
-Phases 1–2 already reduce seven places to five (schema, factory registry,
-renderer `when`, widget visitor, model visitor); this phase attacks the rest —
-a generic `visit(model)` fallback on the model visitor is one candidate — so
-adding a node is a local, additive change.
+Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** dissolve
+what's left of "N places to touch per widget" — not by building a better
+registry but by deleting the pattern layer that made registration necessary.
+`KomposerModel` is sealed (sealing *is* the registration, the trade the
+modifier hierarchy already proved) and `toWidget()` extension functions plus
+exhaustive `when` dispatch replace factories and visitors. Adding a node
+becomes a local, additive change where every dispatch point is a branch the
+**compiler** demands. Pre-render validation can return later as a plain
+recursive function if needed.
 
-**Done when:** a new widget ships by registering it in one place.
+**Done when:** a new widget ships by adding its own files — no registry, no
+schema entry, no visitor edits; forgetting a dispatch branch is a compile
+error, and the row node has landed that way as the proof.
+*(Half done — the architecture simplification landed 2026-09-03: the
+registry/schema/visitors/factories/composite are deleted, and every dispatch
+point is now a compiler-demanded branch. The 64 engine tests (44 in
+`commonTest`, 20 in `androidApp`) came across with the serialization half
+**unedited**, so the wire format is byte-identical. What's left for the phase:
+growing the catalog, starting with the row node — which will also be the proof
+that the new shape holds.)*
 
 ## Phase 5 — Interactivity & state
 
 Server-described **actions/events** (navigate, click, fetch) and a real
 `KomposerState` for save/restore. UI as data eventually has to *do* something.
 The `clickable` modifier deferred from Phase 3 lands here — its wire token is
-already reserved ([SPEC-0005 §2.6](specs/0005-modifier-system.md)).
+already reserved.
 
 **Done when:** a JSON-described button triggers a defined action and the
 screen survives configuration changes.

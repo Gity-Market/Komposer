@@ -1,16 +1,15 @@
-package ir.gity.komposer.core.widget.text
+package ir.gity.komposer.core.renderer
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import ir.gity.komposer.core.renderer.KomposerRenderScope
-import ir.gity.komposer.core.renderer.toComposeModifier
+import ir.gity.komposer.core.widget.TextWidget
 
 @Composable
 fun RenderText(widget: TextWidget, scope: KomposerRenderScope? = null) {
     Text(
         text = widget.text,
-        // Wire modifiers, folded with the scope this widget received from its parent
-        // (SPEC-0005 §5.1). The old opaque `widget.modifier` field is gone (§5.5).
+        // Wire modifiers, folded with the scope this widget received from its parent.
+        // The old opaque `widget.modifier` field is gone.
         modifier = widget.modifiers.toComposeModifier(scope),
         color = widget.color,
         fontSize = widget.fontSize,

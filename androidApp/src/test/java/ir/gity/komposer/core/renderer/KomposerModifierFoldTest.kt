@@ -8,7 +8,7 @@ import ir.gity.komposer.core.KomposerRenderException
 import ir.gity.komposer.core.model.modifier.BackgroundModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
-import ir.gity.komposer.core.widget.factory.parseKomposerColor
+import ir.gity.komposer.core.widget.parseKomposerColor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,7 +16,7 @@ import kotlin.test.assertNotEquals
 
 /**
  * `Modifier.Element` implementations define structural equality (required for recomposition
- * skipping), so folded chains compare with `==` (SPEC-0005 §10).
+ * skipping), so folded chains compare with `==`.
  */
 class KomposerModifierFoldTest {
 
@@ -59,7 +59,7 @@ class KomposerModifierFoldTest {
             Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             listOf(PaddingModifier(horizontal = 12f, vertical = 4f)).toComposeModifier(),
         )
-        // Absent axis ⇒ 0 (SPEC-0005 §2.1).
+        // Absent axis ⇒ 0.
         assertEquals(
             Modifier.padding(horizontal = 12.dp, vertical = 0.dp),
             listOf(PaddingModifier(horizontal = 12f)).toComposeModifier(),

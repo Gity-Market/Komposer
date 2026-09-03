@@ -1,7 +1,7 @@
 package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.KomposerDocument
-import ir.gity.komposer.core.model.column.ColumnModel
+import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.VerticalArrangementValue
 import ir.gity.komposer.core.model.modifier.BackgroundModifier
@@ -10,12 +10,12 @@ import ir.gity.komposer.core.model.modifier.FillMaxWidthModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.SizeModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.FontStyleValue
-import ir.gity.komposer.core.model.text.TextModel
-import ir.gity.komposer.core.model.text.TextOverflowValue
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.FontStyleValue
+import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.TextOverflowValue
 
-/** SPEC-0005 §9 reference payload — the Phase 3 acceptance surface, shared across tests. */
+/** Modifier reference payload — the Phase 3 acceptance surface, shared across tests. */
 val MODIFIER_REFERENCE_JSON = """
 {
   "version": 1,

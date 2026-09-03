@@ -12,17 +12,14 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import ir.gity.komposer.core.KomposerWidget
-import ir.gity.komposer.core.model.column.ColumnModel
-import ir.gity.komposer.core.model.spacer.SpacerModel
-import ir.gity.komposer.core.model.text.TextModel
+import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.SpacerModel
+import ir.gity.komposer.core.model.TextModel
 import ir.gity.komposer.core.renderer.KomposerRenderer
 import ir.gity.komposer.core.serialization.DefaultKomposerSerializer
-import ir.gity.komposer.core.visitor.GraphBuilder
-import ir.gity.komposer.core.widget.factory.ColumnWidgetFactory
-import ir.gity.komposer.core.widget.factory.FactoryRegistry
-import ir.gity.komposer.core.widget.factory.SpacerWidgetFactory
-import ir.gity.komposer.core.widget.factory.TextWidgetFactory
+import ir.gity.komposer.core.widget.KomposerWidget
+import ir.gity.komposer.core.widget.debugGraph
+import ir.gity.komposer.core.widget.toWidget
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,20 +38,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** Registers the v1 catalog. No `Density` needed — works outside a composition. */
-private fun v1Registry(): FactoryRegistry = FactoryRegistry().apply {
-    register<ColumnModel>(ColumnWidgetFactory())
-    register<TextModel>(TextWidgetFactory())
-    register<SpacerModel>(SpacerWidgetFactory())
-    // هر تعداد ویجت جدیدی که اضافه شد، فقط همینجا اضافه می‌شه
-}
-
 @Composable
 private fun KomposerJson2ModelDemo() {
     // remember: deserialization + widget construction must not re-run on recomposition.
     val widget = remember {
-        val document = DefaultKomposerSerializer().parse(REFERENCE_JSON)
-        v1Registry().build().create(document.root)
+        DefaultKomposerSerializer().parse(REFERENCE_JSON).root.toWidget()
     }
     KomposerRenderer(widget = widget)
 }
@@ -79,14 +67,14 @@ private fun KomposerModelDemo() {
                 )
             )
         )
-        v1Registry().build().create(model)
+        model.toWidget()
     }
-    val graph = remember(widget) { GraphBuilder().apply { Visit(widget) }.build() }
+    val graph = remember(widget) { widget.debugGraph() }
     SideEffect { Log.i(TAG, "KomposerModelDemo: $graph") }
     KomposerRenderer(widget = widget)
 }
 
-/** SPEC-0005 §9 reference payload — the Phase 3 acceptance surface (exercises every v1
+/** Modifier reference payload — the Phase 3 acceptance surface (exercises every v1
  *  modifier except fillMaxHeight, both column layout fields, order sensitivity, weight scope). */
 private val REFERENCE_JSON = """
 {
