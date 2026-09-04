@@ -66,4 +66,33 @@ class ValidationTest {
     fun unknownEnumTokenFails() {
         assertParseFails("""{"type":"text","text":"x","overflow":"fade"}""")
     }
+
+    // --- spacing (row + column) ---
+
+    @Test
+    fun negativeOrNonFiniteSpacingFails() {
+        assertParseFails("""{"type":"row","spacing":-1}""")
+        assertParseFails("""{"type":"column","spacing":-1}""")
+        assertParseFails("""{"type":"row","spacing":"NaN"}""")
+        assertParseFails("""{"type":"column","spacing":"Infinity"}""")
+    }
+
+    @Test
+    fun spacingWithArrangementFails() {
+        // spacing IS an arrangement: one slot, so the pair is a contradiction — even with the
+        // default token spelled out.
+        assertParseFails("""{"type":"row","spacing":8,"horizontalArrangement":"spaceBetween"}""")
+        assertParseFails("""{"type":"row","spacing":8,"horizontalArrangement":"start"}""")
+        assertParseFails("""{"type":"column","spacing":8,"verticalArrangement":"center"}""")
+        assertParseFails("""{"type":"column","spacing":8,"verticalArrangement":"top"}""")
+    }
+
+    @Test
+    fun zeroSpacingAndCrossAxisAlignmentWithSpacingAreLegal() {
+        serializer.parseNode("""{"type":"row","spacing":0}""")
+        serializer.parseNode("""{"type":"column","spacing":0}""")
+        // Cross-axis alignment is a different slot; it combines freely with spacing.
+        serializer.parseNode("""{"type":"row","spacing":8,"verticalAlignment":"center"}""")
+        serializer.parseNode("""{"type":"column","spacing":8,"horizontalAlignment":"end"}""")
+    }
 }

@@ -2,6 +2,8 @@ package ir.gity.komposer.core.widget
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
@@ -12,20 +14,32 @@ import ir.gity.komposer.core.model.modifier.KomposerModifier
 // TextWidget. An immutable value: the mutable add/removeChild API existed for
 // the GoF Composite shape, nothing mutates a widget tree after construction, and the round-trip
 // law is easier to trust over values.
+//
+// `spacing` is stored as its own `Dp?`, never folded into `verticalArrangement` — `spacedBy`
+// returns an opaque Arrangement whose dp `toModel()` could not recover (see RowWidget).
 data class ColumnWidget(
     val children: List<KomposerWidget> = emptyList(),
     val verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     val horizontalAlignment: Alignment.Horizontal = Alignment.Start,
+    val spacing: Dp? = null,
     override val modifiers: List<KomposerModifier> = emptyList(),
 ) : KomposerWidget {
 
-    // Modifiers copy through verbatim (identity); layout fields normalize Compose defaults
-    // back to absent so canonical models round-trip to themselves.
+    init {
+        // Mirrors the model rule for hand-built widgets.
+        require(spacing == null || verticalArrangement == Arrangement.Top) {
+            "spacing and a non-default verticalArrangement are mutually exclusive"
+        }
+    }
+
+    // Modifiers and spacing copy through verbatim (identity); layout fields normalize Compose
+    // defaults back to absent so canonical models round-trip to themselves.
     override fun toModel(): KomposerModel {
         return ColumnModel(
             children = children.map { it.toModel() },
             verticalArrangement = verticalArrangement.toValue(),
             horizontalAlignment = horizontalAlignment.toValue(),
+            spacing = spacing?.value,
             modifiers = modifiers,
         )
     }
@@ -55,6 +69,8 @@ fun ColumnModel.toWidget(): ColumnWidget = ColumnWidget(
     children = children.map { it.toWidget() },
     verticalArrangement = verticalArrangement.toArrangement(),
     horizontalAlignment = horizontalAlignment.toAlignment(),
+    // dp on the wire: no Density needed, mapping works outside a composition.
+    spacing = spacing?.dp,
     // Modifiers copy through unchanged.
     modifiers = modifiers,
 )

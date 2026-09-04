@@ -57,4 +57,14 @@ class StrictnessTest {
         }
         assertEquals("Unsupported wire version: 2", ex.message)
     }
+
+    @Test
+    fun unknownRowLayoutTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"row","horizontalArrangement":"diagonal"}""")
+        }
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"row","verticalAlignment":"middle"}""")
+        }
+    }
 }

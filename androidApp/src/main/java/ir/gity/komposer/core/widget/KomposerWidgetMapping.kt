@@ -2,6 +2,7 @@ package ir.gity.komposer.core.widget
 
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.KomposerModel
+import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
 import ir.gity.komposer.core.model.TextModel
 
@@ -16,5 +17,6 @@ import ir.gity.komposer.core.model.TextModel
 fun KomposerModel.toWidget(): KomposerWidget = when (this) {
     is TextModel -> toWidget()
     is ColumnModel -> toWidget()
+    is RowModel -> toWidget()
     is SpacerModel -> toWidget()
 }

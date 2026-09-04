@@ -1,6 +1,7 @@
 package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
 import ir.gity.komposer.core.model.FontStyleValue
 import ir.gity.komposer.core.model.TextAlignValue
@@ -23,6 +24,7 @@ class RoundTripTest {
         val nodes = listOf(
             TextModel(text = "hi"),
             ColumnModel(),
+            RowModel(),
             SpacerModel(height = 8f),
         )
         for (node in nodes) {
@@ -109,5 +111,10 @@ class RoundTripTest {
     @Test
     fun emptyColumnEncodesWithoutChildrenKey() {
         assertEquals("""{"type":"column"}""", serializer.encodeNode(ColumnModel()))
+    }
+
+    @Test
+    fun emptyRowEncodesWithoutChildrenKey() {
+        assertEquals("""{"type":"row"}""", serializer.encodeNode(RowModel()))
     }
 }

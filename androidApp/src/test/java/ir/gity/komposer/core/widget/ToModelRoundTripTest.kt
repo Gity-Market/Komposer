@@ -1,14 +1,19 @@
 package ir.gity.komposer.core.widget
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.unit.dp
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.FontStyleValue
 import ir.gity.komposer.core.model.KomposerModel
+import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
 import ir.gity.komposer.core.model.TextAlignValue
 import ir.gity.komposer.core.model.TextDecorationValue
 import ir.gity.komposer.core.model.TextModel
 import ir.gity.komposer.core.model.TextOverflowValue
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
+import ir.gity.komposer.core.model.layout.HorizontalArrangementValue
+import ir.gity.komposer.core.model.layout.VerticalAlignmentValue
 import ir.gity.komposer.core.model.layout.VerticalArrangementValue
 import ir.gity.komposer.core.model.modifier.BackgroundModifier
 import ir.gity.komposer.core.model.modifier.FillMaxSizeModifier
@@ -17,6 +22,7 @@ import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class ToModelRoundTripTest {
 
@@ -50,6 +56,12 @@ class ToModelRoundTripTest {
                     fullCanonicalText,
                     SpacerModel(height = 8f),
                     ColumnModel(children = listOf(TextModel(text = "nested"))),
+                ),
+            ),
+            RowModel(
+                children = listOf(
+                    fullCanonicalText,
+                    RowModel(children = listOf(TextModel(text = "nested"))),
                 ),
             ),
         )
@@ -149,5 +161,94 @@ class ToModelRoundTripTest {
         val once = roundTrip(nonCanonical)
         val twice = roundTrip(once)
         assertEquals(once, twice)
+    }
+
+    // --- Row: the same three regimes on the other axis ---
+
+    @Test
+    fun canonicalRowLayoutFieldsRoundTrip() {
+        for (arrangement in HorizontalArrangementValue.entries.filter { it != HorizontalArrangementValue.Start }) {
+            val model = RowModel(horizontalArrangement = arrangement)
+            assertEquals(model, roundTrip(model), "horizontalArrangement=$arrangement")
+        }
+        for (alignment in VerticalAlignmentValue.entries.filter { it != VerticalAlignmentValue.Top }) {
+            val model = RowModel(verticalAlignment = alignment)
+            assertEquals(model, roundTrip(model), "verticalAlignment=$alignment")
+        }
+        val both = RowModel(
+            horizontalArrangement = HorizontalArrangementValue.SpaceAround,
+            verticalAlignment = VerticalAlignmentValue.Bottom,
+            modifiers = listOf(FillMaxWidthModifier()),
+        )
+        assertEquals(both, roundTrip(both))
+    }
+
+    @Test
+    fun explicitDefaultRowLayoutNormalizesToAbsent() {
+        // Start / Top equal the Compose defaults → normalize back to absent.
+        val nonCanonical = RowModel(
+            horizontalArrangement = HorizontalArrangementValue.Start,
+            verticalAlignment = VerticalAlignmentValue.Top,
+        )
+        assertEquals(RowModel(), roundTrip(nonCanonical))
+    }
+
+    @Test
+    fun rowLayoutNormalizationIsIdempotent() {
+        val nonCanonical = RowModel(horizontalArrangement = HorizontalArrangementValue.Start)
+        val once = roundTrip(nonCanonical)
+        val twice = roundTrip(once)
+        assertEquals(once, twice)
+    }
+
+    // --- spacing: stored as its own Dp?, so exact for every value (including 0) ---
+
+    @Test
+    fun spacingSurvivesExactlyOnBothContainers() {
+        for (spacing in listOf(0f, 8f, 12.5f)) {
+            val row = RowModel(spacing = spacing, verticalAlignment = VerticalAlignmentValue.Center)
+            val column = ColumnModel(spacing = spacing, horizontalAlignment = HorizontalAlignmentValue.End)
+            assertEquals(row, roundTrip(row), "row spacing=$spacing")
+            assertEquals(column, roundTrip(column), "column spacing=$spacing")
+        }
+    }
+
+    @Test
+    fun handBuiltWidgetRejectsSpacingWithArrangement() {
+        // The widget mirrors the model's rule, so a contradiction cannot reach toModel().
+        assertFailsWith<IllegalArgumentException> {
+            RowWidget(horizontalArrangement = Arrangement.Center, spacing = 8.dp)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            ColumnWidget(verticalArrangement = Arrangement.Center, spacing = 8.dp)
+        }
+    }
+
+    @Test
+    fun mixedNestedTreeWithModifiersRoundTripsExactly() {
+        val model = ColumnModel(
+            spacing = 12f,
+            modifiers = listOf(FillMaxSizeModifier(), PaddingModifier(all = 16f)),
+            children = listOf(
+                RowModel(
+                    spacing = 8f,
+                    verticalAlignment = VerticalAlignmentValue.Center,
+                    modifiers = listOf(FillMaxWidthModifier()),
+                    children = listOf(
+                        TextModel(text = "weighted", modifiers = listOf(WeightModifier(value = 1f))),
+                        TextModel(text = "fixed", fontStyle = FontStyleValue.Italic),
+                        ColumnModel(
+                            modifiers = listOf(PaddingModifier(all = 4f)),
+                            children = listOf(TextModel(text = "nested", fontSize = 12f)),
+                        ),
+                    ),
+                ),
+                RowModel(
+                    horizontalArrangement = HorizontalArrangementValue.SpaceBetween,
+                    children = listOf(TextModel(text = "left"), TextModel(text = "right")),
+                ),
+            ),
+        )
+        assertEquals(model, roundTrip(model))
     }
 }

@@ -1,6 +1,7 @@
 package ir.gity.komposer.core.renderer
 
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.ui.Modifier
 
 /**
@@ -17,6 +18,12 @@ interface KomposerRenderScope {
 
 /** Adapts a Compose [ColumnScope] so column children can fold a `weight` modifier. */
 class ColumnRenderScope(private val scope: ColumnScope) : KomposerRenderScope {
+    override fun weight(modifier: Modifier, value: Float, fill: Boolean): Modifier =
+        with(scope) { modifier.weight(value, fill) }
+}
+
+/** Adapts a Compose [RowScope] so row children can fold a `weight` modifier — horizontally. */
+class RowRenderScope(private val scope: RowScope) : KomposerRenderScope {
     override fun weight(modifier: Modifier, value: Float, fill: Boolean): Modifier =
         with(scope) { modifier.weight(value, fill) }
 }
