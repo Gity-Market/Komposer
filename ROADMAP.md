@@ -67,7 +67,7 @@ visual check is the one gate not yet run.)*
 
 ## Phase 4 — Widget catalog & simpler architecture
 
-Grow the node set (Row, Box, Image, Button, lazy lists, …) **and** dissolve
+Grow the node set (Row, Box, Image, …) **and** dissolve
 what's left of "N places to touch per widget" — not by building a better
 registry but by deleting the pattern layer that made registration necessary.
 `KomposerModel` is sealed (sealing *is* the registration, the trade the
@@ -80,20 +80,24 @@ recursive function if needed.
 **Done when:** a new widget ships by adding its own files — no registry, no
 schema entry, no visitor edits; forgetting a dispatch branch is a compile
 error, and the row node has landed that way as the proof.
-*(Half done — the architecture simplification landed 2026-09-03: the
-registry/schema/visitors/factories/composite are deleted, and every dispatch
-point is now a compiler-demanded branch. The 64 engine tests (44 in
-`commonTest`, 20 in `androidApp`) came across with the serialization half
-**unedited**, so the wire format is byte-identical. What's left for the phase:
-growing the catalog, starting with the row node — which will also be the proof
-that the new shape holds.)*
+✅ *(done — the architecture simplification landed 2026-09-03
+(registry/schema/visitors/factories/composite deleted, every dispatch point a
+compiler-demanded branch, wire format byte-identical), and the catalog followed
+2026-09-04: `row` with `RowRenderScope`, `box` with a two-dimensional
+`contentAlignment`, `image` loaded by Coil 3, and `spacing`
+(`Arrangement.spacedBy`) on both `row` and `column`. Each shipped as its own
+files plus the `when` branches the compiler demanded — the proof. **Button
+moved to Phase 5**, for the same reason `clickable` did: a button whose tap
+does nothing is a payload that lies. Lazy lists stay open (below).)*
 
 ## Phase 5 — Interactivity & state
 
 Server-described **actions/events** (navigate, click, fetch) and a real
 `KomposerState` for save/restore. UI as data eventually has to *do* something.
 The `clickable` modifier deferred from Phase 3 lands here — its wire token is
-already reserved.
+already reserved — and so does the **`button` node** deferred from Phase 4
+(Material 3 variants `filled|tonal|outlined|elevated|text`, a text label,
+`enabled`, and the `action` this phase defines).
 
 **Done when:** a JSON-described button triggers a defined action and the
 screen survives configuration changes.
@@ -127,3 +131,9 @@ fallback for unknown nodes.
   (`"primary"`) need a real theming story.
 - **Non-Kotlin backends.** A generated JSON Schema would decouple the wire
   format from Kotlin; only worth it if a non-Kotlin producer actually appears.
+- **Catalog growth after Phase 4.** Lazy lists (`LazyColumn`/`LazyRow`: item
+  keys, content types, the fold-memoization question); a per-child `align`
+  modifier for `box` (the first scoped modifier after `weight`, and it needs
+  `KomposerRenderScope` to grow an axis-aware `align`); a horizontal `spacer`;
+  image sources beyond a URL (bundled resources), placeholders, `alpha`; the
+  `aspectRatio` and `clip` modifiers that image sizing and rounded corners want.

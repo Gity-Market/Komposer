@@ -57,4 +57,35 @@ class StrictnessTest {
         }
         assertEquals("Unsupported wire version: 2", ex.message)
     }
+
+    @Test
+    fun unknownRowLayoutTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"row","horizontalArrangement":"diagonal"}""")
+        }
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"row","verticalAlignment":"middle"}""")
+        }
+    }
+
+    @Test
+    fun missingRequiredImageUrlFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"image","contentDescription":"no source"}""")
+        }
+    }
+
+    @Test
+    fun unknownImageContentScaleTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"image","url":"https://example.com/a.png","contentScale":"stretch"}""")
+        }
+    }
+
+    @Test
+    fun unknownBoxAlignmentTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"box","contentAlignment":"middle"}""")
+        }
+    }
 }

@@ -1,5 +1,6 @@
 package ir.gity.komposer.core.renderer
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import ir.gity.komposer.core.widget.ColumnWidget
@@ -9,10 +10,11 @@ fun RenderColumn(widget: ColumnWidget, scope: KomposerRenderScope? = null) {
     // The `Modifier.fillMaxWidth()` hardcode is gone: a bare column now sizes
     // like a bare Compose Column (wrapping its content). Full-width payloads say so explicitly
     // via a `fillMaxWidth` modifier. Wire modifiers fold with the scope this column received
-    // from *its* parent.
+    // from *its* parent. `spacing` and the arrangement are mutually exclusive on the widget.
     Column(
         modifier = widget.modifiers.toComposeModifier(scope),
-        verticalArrangement = widget.verticalArrangement,
+        verticalArrangement = widget.spacing?.let { Arrangement.spacedBy(it) }
+            ?: widget.verticalArrangement,
         horizontalAlignment = widget.horizontalAlignment,
     ) {
         // A composite creates the weight-capable scope for its children.

@@ -74,60 +74,80 @@ private fun KomposerModelDemo() {
     KomposerRenderer(widget = widget)
 }
 
-/** Modifier reference payload — the Phase 3 acceptance surface (exercises every v1
- *  modifier except fillMaxHeight, both column layout fields, order sensitivity, weight scope). */
+/** Catalog reference payload — the Phase 4 acceptance surface (mirrors `CATALOG_REFERENCE_JSON`
+ *  in `commonTest`): `spacing` on both containers, every row layout field, `weight` inside a row,
+ *  a column nested in a row, and a `box` stacking a cropped network `image` under an overlay. The
+ *  Phase 3 modifier payload it replaces lives on as `MODIFIER_REFERENCE_JSON` in `commonTest`. */
 private val REFERENCE_JSON = """
 {
   "version": 1,
   "root": {
     "type": "column",
-    "modifiers": [
-      { "type": "fillMaxSize" },
-      { "type": "background", "color": "#F2F2F7" },
-      { "type": "padding", "all": 16 }
-    ],
-    "horizontalAlignment": "center",
+    "modifiers": [ { "type": "fillMaxSize" }, { "type": "padding", "all": 16 } ],
+    "spacing": 12,
     "children": [
-      { "type": "text", "text": "Hello Komposer, modified", "fontWeight": 700, "fontSize": 20, "color": "#6200EE" },
-      { "type": "spacer", "height": 12 },
       {
-        "type": "text",
-        "text": "background → padding: the yellow includes this inset",
-        "modifiers": [
-          { "type": "background", "color": "#FFD54F" },
-          { "type": "padding", "horizontal": 12, "vertical": 4 }
-        ]
-      },
-      {
-        "type": "text",
-        "text": "padding → background: the yellow hugs the text",
-        "modifiers": [
-          { "type": "padding", "horizontal": 12, "vertical": 4 },
-          { "type": "background", "color": "#FFD54F" }
-        ]
-      },
-      { "type": "spacer", "height": 12 },
-      {
-        "type": "text",
-        "text": "weighted: fills the leftover vertical space",
-        "modifiers": [
-          { "type": "weight", "value": 1 },
-          { "type": "fillMaxWidth" },
-          { "type": "background", "color": "#E1F5FE" }
-        ]
-      },
-      {
-        "type": "column",
-        "modifiers": [
-          { "type": "fillMaxWidth", "fraction": 0.5 },
-          { "type": "size", "height": 120 },
-          { "type": "background", "color": "#EDE7F6" },
-          { "type": "padding", "all": 8 }
-        ],
-        "verticalArrangement": "spaceBetween",
+        "type": "row",
+        "modifiers": [ { "type": "fillMaxWidth" } ],
+        "verticalAlignment": "center",
+        "spacing": 8,
         "children": [
-          { "type": "text", "text": "half width, 120dp tall", "fontStyle": "italic" },
-          { "type": "text", "text": "spaceBetween pushes me down", "maxLines": 1, "overflow": "ellipsis" }
+          { "type": "text", "text": "8dp gaps", "fontWeight": 700 },
+          { "type": "text", "text": "between" },
+          { "type": "text", "text": "us" }
+        ]
+      },
+      {
+        "type": "row",
+        "modifiers": [ { "type": "fillMaxWidth" } ],
+        "horizontalArrangement": "spaceBetween",
+        "children": [
+          { "type": "text", "text": "far left" },
+          { "type": "text", "text": "far right" }
+        ]
+      },
+      {
+        "type": "row",
+        "modifiers": [ { "type": "fillMaxWidth" }, { "type": "background", "color": "#EDE7F6" } ],
+        "verticalAlignment": "bottom",
+        "children": [
+          {
+            "type": "text",
+            "text": "weighted: I take the leftover width",
+            "modifiers": [ { "type": "weight", "value": 1 } ]
+          },
+          { "type": "text", "text": "fixed", "fontStyle": "italic" },
+          {
+            "type": "column",
+            "modifiers": [ { "type": "padding", "all": 4 } ],
+            "children": [
+              { "type": "text", "text": "nested", "fontSize": 12 },
+              { "type": "text", "text": "column", "fontSize": 12 }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "modifiers": [ { "type": "size", "width": 200, "height": 120 } ],
+        "contentAlignment": "bottomEnd",
+        "children": [
+          {
+            "type": "image",
+            "url": "https://picsum.photos/400/240",
+            "contentDescription": "sample photo",
+            "contentScale": "crop",
+            "modifiers": [ { "type": "fillMaxSize" } ]
+          },
+          {
+            "type": "text",
+            "text": "overlay",
+            "color": "#FFFFFF",
+            "modifiers": [
+              { "type": "background", "color": "#80000000" },
+              { "type": "padding", "horizontal": 8, "vertical": 4 }
+            ]
+          }
         ]
       }
     ]
