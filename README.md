@@ -70,7 +70,8 @@ tackled on its own terms — now implemented (Phase 3).
   Compose; exhaustive over the sealed widgets, so a node without a render branch
   will not compile.
 
-Three node types exist today: **Text**, **Column** (the composite), **Spacer**.
+Six node types exist today: **Text**, **Image**, **Spacer**, and the three containers
+**Column**, **Row**, **Box**.
 
 ## What replaced the patterns
 
@@ -126,13 +127,25 @@ and the full `commonTest` round-trip/validation suite are in and green, and the
 Android fold/scope/renderer changes are in (the two interim `fillMaxWidth()`
 hardcodes and `TextWidget`'s dead `modifier` field are gone).
 
-**⚠️ Not yet re-verified in this repo.** The Phase 4 simplification was
-developed and its 64 engine tests run green in a single-module Android port of
-this codebase, then transplanted here (identical packages, different source
-sets). `:shared:testDebugUnitTest`, `:androidApp:testDebugUnitTest`,
-`assembleDebug`, `lint`, and `:shared:allTests` have **not** been run against
-this repo since the transplant — nor has the on-device visual check that Phase 3
-already owed.
+**✅ Working — the Phase 4 catalog.** `row` (column's horizontal counterpart,
+with `RowRenderScope` so `weight` works horizontally), `box` (overlay container
+with a two-dimensional `contentAlignment`; provides no weight scope), and
+`image` (a URL loaded by Coil 3, with `contentDescription` and `contentScale`),
+plus a `spacing` field (`Arrangement.spacedBy`, dp) on both `row` and `column`,
+mutually exclusive with the arrangement token. Each landed as its own files
+plus compiler-demanded `when` branches — the proof the sealed shape holds.
+`button` is deliberately **not** here: a button that cannot act is the same
+"payload that lies" that moved `clickable` to Phase 5, so it lands there.
+
+**⚠️ Verified on a plain JVM, not yet through the Android build.** The engine
+tests (`commonTest` plus the `androidApp` unit tests — 94 engine cases, 64 + 30) run green on
+a scratch JVM harness that compiles `shared` and `androidApp`'s `core/**`
+against Compose Multiplatform desktop artifacts — the remote environment used
+for this work has no Android SDK and cannot reach Google Maven. That proves the
+Kotlin, the serialization, and the widget round-trips; it cannot exercise AGP,
+the manifest, lint, or pixels. `:shared:testDebugUnitTest`,
+`:androidApp:testDebugUnitTest`, `assembleDebug`, `lint`, `:shared:allTests`,
+and the on-device check of the catalog payload still need a local run.
 
 ## Known design tensions
 
@@ -182,11 +195,11 @@ explain *why* the engine changed what it changed.
 ## Where things are going
 
 - **[ROADMAP.md](ROADMAP.md)** — direction and milestones, deliberately coarse.
-  Phases 0–3 are done: the shared KMP contract (models + real JSON round-trip
-  in `commonMain`), the Android pipeline that renders raw JSON on screen, and
-  the ordered modifier system. Phase 4 is half done — the architecture
-  simplification landed; growing the node catalog (starting with `row`) is what
-  remains.
+  Phases 0–4 are done: the shared KMP contract (models + real JSON round-trip
+  in `commonMain`), the Android pipeline that renders raw JSON on screen, the
+  ordered modifier system, and Phase 4's sealed architecture plus the catalog
+  it was built for (`row`, `box`, `image`, `spacing`). Phase 5 (actions, state,
+  `clickable`, `button`) is next.
 
 ## Project layout
 
@@ -200,14 +213,15 @@ Komposer/
 │   └── src/main/java/ir/gity/komposer/
 │       ├── android/MainActivity.kt   # End-to-end wiring + demos (JSON demo is primary)
 │       └── core/
-│           ├── widget/               # sealed KomposerWidget + widgets, toWidget() mapping,
-│           │                         #   color parsing, debugGraph()
-│           ├── renderer/             # KomposerRenderer + Render* + modifier fold + render scope
+│           ├── widget/               # sealed KomposerWidget + Text/Column/Row/Box/Image/Spacer
+│           │                         #   widgets, toWidget() mapping, color parsing, debugGraph()
+│           ├── renderer/             # KomposerRenderer + Render* + modifier fold + render scopes
+│           │                         #   (Column/Row); RenderImage is Coil's AsyncImage
 │           └── KomposerRenderException.kt
 ├── shared/                           # KMP module — the wire contract
 │   └── src/commonMain/kotlin/ir/gity/komposer/core/
-│       ├── model/                    # sealed KomposerModel + Text/Column/Spacer,
-│       │                             #   KomposerDocument, layout/, modifier/
+│       ├── model/                    # sealed KomposerModel + Text/Column/Row/Box/Image/Spacer,
+│       │                             #   KomposerDocument, layout/ (per-axis enums), modifier/
 │       └── serialization/            # DefaultKomposerSerializer + exceptions
 ├── iosApp/                           # iOS host (consumes shared as a static framework)
 └── ROADMAP.md
@@ -227,7 +241,8 @@ Kotlin Multiplatform via the Gradle wrapper.
 
 **Toolchain** (source of truth: `gradle/libs.versions.toml`):
 Kotlin `2.2.0` · AGP `8.12.0` · Gradle `8.14.3` · Compose BOM `2025.04.00` ·
-kotlinx.serialization `1.8.0` · `compileSdk 35` / `minSdk 24` · JVM target `1.8`.
+Coil `3.2.0` · kotlinx.serialization `1.8.0` · `compileSdk 35` / `minSdk 24` ·
+JVM target `1.8`.
 
 ```bash
 ./gradlew :androidApp:assembleDebug    # build the Android app
