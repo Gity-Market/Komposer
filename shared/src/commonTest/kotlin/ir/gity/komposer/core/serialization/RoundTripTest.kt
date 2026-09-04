@@ -2,6 +2,7 @@ package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.ImageModel
 import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
 import ir.gity.komposer.core.model.FontStyleValue
@@ -27,6 +28,7 @@ class RoundTripTest {
             ColumnModel(),
             RowModel(),
             BoxModel(),
+            ImageModel(url = "https://example.com/a.png"),
             SpacerModel(height = 8f),
         )
         for (node in nodes) {
@@ -123,5 +125,13 @@ class RoundTripTest {
     @Test
     fun emptyBoxEncodesWithoutChildrenKey() {
         assertEquals("""{"type":"box"}""", serializer.encodeNode(BoxModel()))
+    }
+
+    @Test
+    fun defaultImageEncodesWithOnlyUrl() {
+        assertEquals(
+            """{"type":"image","url":"https://example.com/a.png"}""",
+            serializer.encodeNode(ImageModel(url = "https://example.com/a.png")),
+        )
     }
 }

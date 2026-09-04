@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.unit.dp
 import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.ContentScaleValue
 import ir.gity.komposer.core.model.FontStyleValue
+import ir.gity.komposer.core.model.ImageModel
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
@@ -228,6 +230,32 @@ class ToModelRoundTripTest {
         assertEquals(once, roundTrip(once))
     }
 
+    // --- Image: strings verbatim, contentScale normalizes ---
+
+    @Test
+    fun canonicalImageRoundTripsExactly() {
+        for (scale in ContentScaleValue.entries.filter { it != ContentScaleValue.Fit }) {
+            val model = ImageModel(url = "https://example.com/a.png", contentScale = scale)
+            assertEquals(model, roundTrip(model), "contentScale=$scale")
+        }
+        val populated = ImageModel(
+            url = "https://example.com/hero.jpg?w=400",
+            contentDescription = "A hero image",
+            contentScale = ContentScaleValue.Crop,
+            modifiers = listOf(FillMaxSizeModifier(), PaddingModifier(all = 4f)),
+        )
+        assertEquals(populated, roundTrip(populated))
+    }
+
+    @Test
+    fun explicitDefaultImageScaleNormalizesToAbsent() {
+        // Fit equals the Compose default → normalizes back to absent; and stays there.
+        val nonCanonical = ImageModel(url = "https://example.com/a.png", contentScale = ContentScaleValue.Fit)
+        val once = roundTrip(nonCanonical)
+        assertEquals(ImageModel(url = "https://example.com/a.png"), once)
+        assertEquals(once, roundTrip(once))
+    }
+
     // --- spacing: stored as its own Dp?, so exact for every value (including 0) ---
 
     @Test
@@ -277,7 +305,15 @@ class ToModelRoundTripTest {
                 BoxModel(
                     contentAlignment = AlignmentValue.BottomEnd,
                     modifiers = listOf(FillMaxWidthModifier(), BackgroundModifier("#EDE7F6")),
-                    children = listOf(TextModel(text = "under"), TextModel(text = "over")),
+                    children = listOf(
+                        ImageModel(
+                            url = "https://example.com/under.png",
+                            contentDescription = "under",
+                            contentScale = ContentScaleValue.Crop,
+                            modifiers = listOf(FillMaxSizeModifier()),
+                        ),
+                        TextModel(text = "over"),
+                    ),
                 ),
             ),
         )

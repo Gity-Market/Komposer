@@ -2,6 +2,8 @@ package ir.gity.komposer.core.serialization
 
 import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
+import ir.gity.komposer.core.model.ContentScaleValue
+import ir.gity.komposer.core.model.ImageModel
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.TextModel
@@ -9,6 +11,7 @@ import ir.gity.komposer.core.model.layout.AlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalArrangementValue
 import ir.gity.komposer.core.model.layout.VerticalAlignmentValue
+import ir.gity.komposer.core.model.modifier.FillMaxSizeModifier
 import ir.gity.komposer.core.model.modifier.FillMaxWidthModifier
 import ir.gity.komposer.core.model.modifier.PaddingModifier
 import ir.gity.komposer.core.model.modifier.WeightModifier
@@ -16,7 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
-/** JSON ⇄ model round-trips for the Phase 4 catalog nodes (`row`, `box`, …) and the `spacing` field. */
+/** JSON ⇄ model round-trips for the Phase 4 catalog nodes (`row`, `box`, `image`) and the `spacing` field. */
 class CatalogRoundTripTest {
 
     private val serializer = DefaultKomposerSerializer()
@@ -78,6 +81,27 @@ class CatalogRoundTripTest {
         assertEquals(populated, roundTrip(populated))
     }
 
+    // --- image ---
+
+    @Test
+    fun imageContentScaleRoundTripsForEveryToken() {
+        for (scale in ContentScaleValue.entries) {
+            val model = ImageModel(url = "https://example.com/a.png", contentScale = scale)
+            assertEquals(model, roundTrip(model), "contentScale=$scale")
+        }
+    }
+
+    @Test
+    fun fullyPopulatedImageRoundTrips() {
+        val model = ImageModel(
+            url = "https://example.com/hero.jpg?w=400",
+            contentDescription = "A hero image",
+            contentScale = ContentScaleValue.Crop,
+            modifiers = listOf(FillMaxSizeModifier(), PaddingModifier(all = 4f)),
+        )
+        assertEquals(model, roundTrip(model))
+    }
+
     // --- spacing, on both containers ---
 
     @Test
@@ -117,7 +141,10 @@ class CatalogRoundTripTest {
                         ),
                         BoxModel(
                             contentAlignment = AlignmentValue.Center,
-                            children = listOf(TextModel(text = "e"), RowModel(children = listOf(TextModel(text = "f")))),
+                            children = listOf(
+                                ImageModel(url = "https://example.com/e.png", contentScale = ContentScaleValue.Crop),
+                                RowModel(children = listOf(TextModel(text = "f"))),
+                            ),
                         ),
                     ),
                 ),

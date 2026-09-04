@@ -3,6 +3,7 @@ package ir.gity.komposer.core.renderer
 import androidx.compose.runtime.Composable
 import ir.gity.komposer.core.widget.BoxWidget
 import ir.gity.komposer.core.widget.ColumnWidget
+import ir.gity.komposer.core.widget.ImageWidget
 import ir.gity.komposer.core.widget.KomposerWidget
 import ir.gity.komposer.core.widget.RowWidget
 import ir.gity.komposer.core.widget.SpacerWidget
@@ -20,6 +21,7 @@ fun KomposerRenderer(widget: KomposerWidget, scope: KomposerRenderScope? = null)
         is RowWidget -> RenderRow(widget, scope)
         is BoxWidget -> RenderBox(widget, scope)
         is TextWidget -> RenderText(widget, scope)
+        is ImageWidget -> RenderImage(widget, scope)
         is SpacerWidget -> RenderSpacer(widget, scope)
     }
 }

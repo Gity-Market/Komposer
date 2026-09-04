@@ -69,6 +69,20 @@ class StrictnessTest {
     }
 
     @Test
+    fun missingRequiredImageUrlFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"image","contentDescription":"no source"}""")
+        }
+    }
+
+    @Test
+    fun unknownImageContentScaleTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"image","url":"https://example.com/a.png","contentScale":"stretch"}""")
+        }
+    }
+
+    @Test
     fun unknownBoxAlignmentTokenFails() {
         assertFailsWith<KomposerParseException> {
             serializer.parseNode("""{"type":"box","contentAlignment":"middle"}""")

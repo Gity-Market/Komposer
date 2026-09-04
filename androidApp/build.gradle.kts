@@ -46,6 +46,9 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.compose.material3)
     implementation(libs.androidx.activity.compose)
+    // `image` node: AsyncImage + the OkHttp network fetcher (self-registers with the singleton loader).
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     debugImplementation(libs.compose.ui.tooling)
     implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)

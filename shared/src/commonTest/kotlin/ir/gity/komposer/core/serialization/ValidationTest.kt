@@ -67,6 +67,14 @@ class ValidationTest {
         assertParseFails("""{"type":"text","text":"x","overflow":"fade"}""")
     }
 
+    // --- image ---
+
+    @Test
+    fun blankImageUrlFails() {
+        assertParseFails("""{"type":"image","url":""}""")
+        assertParseFails("""{"type":"image","url":"   "}""")
+    }
+
     // --- spacing (row + column) ---
 
     @Test
