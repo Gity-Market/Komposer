@@ -18,6 +18,10 @@ private fun StringBuilder.appendGraph(widget: KomposerWidget) {
             appendLine("Row(size: ${widget.children.size})")
             widget.children.forEach { appendGraph(it) }
         }
+        is BoxWidget -> {
+            appendLine("Box(size: ${widget.children.size})")
+            widget.children.forEach { appendGraph(it) }
+        }
         is SpacerWidget -> appendLine("Spacer(value: ${widget.height})")
     }
 }

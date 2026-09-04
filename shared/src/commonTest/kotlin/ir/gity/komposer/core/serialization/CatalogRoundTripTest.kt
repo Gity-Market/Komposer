@@ -1,9 +1,11 @@
 package ir.gity.komposer.core.serialization
 
+import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.KomposerModel
 import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.TextModel
+import ir.gity.komposer.core.model.layout.AlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalArrangementValue
 import ir.gity.komposer.core.model.layout.VerticalAlignmentValue
@@ -14,7 +16,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
-/** JSON ⇄ model round-trips for the Phase 4 catalog nodes (`row`, …) and the `spacing` field. */
+/** JSON ⇄ model round-trips for the Phase 4 catalog nodes (`row`, `box`, …) and the `spacing` field. */
 class CatalogRoundTripTest {
 
     private val serializer = DefaultKomposerSerializer()
@@ -60,6 +62,22 @@ class CatalogRoundTripTest {
         assertEquals(withGap, roundTrip(withGap))
     }
 
+    // --- box ---
+
+    @Test
+    fun boxContentAlignmentRoundTripsForEveryToken() {
+        for (alignment in AlignmentValue.entries) {
+            val model = BoxModel(contentAlignment = alignment)
+            assertEquals(model, roundTrip(model), "contentAlignment=$alignment")
+        }
+        val populated = BoxModel(
+            children = listOf(TextModel(text = "under"), TextModel(text = "over")),
+            contentAlignment = AlignmentValue.BottomEnd,
+            modifiers = listOf(FillMaxWidthModifier(), PaddingModifier(all = 8f)),
+        )
+        assertEquals(populated, roundTrip(populated))
+    }
+
     // --- spacing, on both containers ---
 
     @Test
@@ -97,9 +115,13 @@ class CatalogRoundTripTest {
                             horizontalArrangement = HorizontalArrangementValue.End,
                             children = listOf(TextModel(text = "c"), TextModel(text = "d")),
                         ),
+                        BoxModel(
+                            contentAlignment = AlignmentValue.Center,
+                            children = listOf(TextModel(text = "e"), RowModel(children = listOf(TextModel(text = "f")))),
+                        ),
                     ),
                 ),
-                TextModel(text = "e"),
+                TextModel(text = "g"),
             ),
         )
         assertEquals(model, roundTrip(model))

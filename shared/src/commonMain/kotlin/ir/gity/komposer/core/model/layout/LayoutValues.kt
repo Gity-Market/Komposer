@@ -3,8 +3,8 @@ package ir.gity.komposer.core.model.layout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-// Container layout vocabulary: node fields on `column` / `row`, not modifiers — in Compose they
-// are container parameters, not `Modifier` calls, and the wire mirrors that split.
+// Container layout vocabulary: node fields on `column` / `row` / `box`, not modifiers — in Compose
+// they are container parameters, not `Modifier` calls, and the wire mirrors that split.
 //
 // Tokens are per-axis vocabularies, designed once: horizontal-axis positions are start/center/end;
 // vertical-axis positions are top/center/bottom; main-axis distribution adds
@@ -54,4 +54,19 @@ enum class VerticalAlignmentValue {
     @SerialName("top") Top,
     @SerialName("center") Center,
     @SerialName("bottom") Bottom,
+}
+
+// --- box: no main axis, so a two-dimensional position ---
+
+@Serializable
+enum class AlignmentValue {
+    @SerialName("topStart") TopStart,
+    @SerialName("topCenter") TopCenter,
+    @SerialName("topEnd") TopEnd,
+    @SerialName("centerStart") CenterStart,
+    @SerialName("center") Center,
+    @SerialName("centerEnd") CenterEnd,
+    @SerialName("bottomStart") BottomStart,
+    @SerialName("bottomCenter") BottomCenter,
+    @SerialName("bottomEnd") BottomEnd,
 }

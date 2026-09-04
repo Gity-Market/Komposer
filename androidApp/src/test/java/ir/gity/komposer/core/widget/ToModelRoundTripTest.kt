@@ -2,6 +2,7 @@ package ir.gity.komposer.core.widget
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.unit.dp
+import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.FontStyleValue
 import ir.gity.komposer.core.model.KomposerModel
@@ -11,6 +12,7 @@ import ir.gity.komposer.core.model.TextAlignValue
 import ir.gity.komposer.core.model.TextDecorationValue
 import ir.gity.komposer.core.model.TextModel
 import ir.gity.komposer.core.model.TextOverflowValue
+import ir.gity.komposer.core.model.layout.AlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalAlignmentValue
 import ir.gity.komposer.core.model.layout.HorizontalArrangementValue
 import ir.gity.komposer.core.model.layout.VerticalAlignmentValue
@@ -201,6 +203,31 @@ class ToModelRoundTripTest {
         assertEquals(once, twice)
     }
 
+    // --- Box: one two-dimensional field, same regimes ---
+
+    @Test
+    fun canonicalBoxAlignmentRoundTrips() {
+        for (alignment in AlignmentValue.entries.filter { it != AlignmentValue.TopStart }) {
+            val model = BoxModel(contentAlignment = alignment)
+            assertEquals(model, roundTrip(model), "contentAlignment=$alignment")
+        }
+        val populated = BoxModel(
+            contentAlignment = AlignmentValue.BottomEnd,
+            modifiers = listOf(FillMaxWidthModifier(), BackgroundModifier("#EDE7F6")),
+            children = listOf(fullCanonicalText, RowModel(children = listOf(TextModel(text = "over")))),
+        )
+        assertEquals(populated, roundTrip(populated))
+    }
+
+    @Test
+    fun explicitDefaultBoxAlignmentNormalizesToAbsent() {
+        // TopStart equals the Compose default → normalizes back to absent; and stays there.
+        val nonCanonical = BoxModel(contentAlignment = AlignmentValue.TopStart)
+        val once = roundTrip(nonCanonical)
+        assertEquals(BoxModel(), once)
+        assertEquals(once, roundTrip(once))
+    }
+
     // --- spacing: stored as its own Dp?, so exact for every value (including 0) ---
 
     @Test
@@ -246,6 +273,11 @@ class ToModelRoundTripTest {
                 RowModel(
                     horizontalArrangement = HorizontalArrangementValue.SpaceBetween,
                     children = listOf(TextModel(text = "left"), TextModel(text = "right")),
+                ),
+                BoxModel(
+                    contentAlignment = AlignmentValue.BottomEnd,
+                    modifiers = listOf(FillMaxWidthModifier(), BackgroundModifier("#EDE7F6")),
+                    children = listOf(TextModel(text = "under"), TextModel(text = "over")),
                 ),
             ),
         )

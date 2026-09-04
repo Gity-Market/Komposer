@@ -67,4 +67,11 @@ class StrictnessTest {
             serializer.parseNode("""{"type":"row","verticalAlignment":"middle"}""")
         }
     }
+
+    @Test
+    fun unknownBoxAlignmentTokenFails() {
+        assertFailsWith<KomposerParseException> {
+            serializer.parseNode("""{"type":"box","contentAlignment":"middle"}""")
+        }
+    }
 }

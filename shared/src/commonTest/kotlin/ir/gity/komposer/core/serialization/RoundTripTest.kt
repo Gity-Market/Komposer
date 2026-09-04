@@ -1,5 +1,6 @@
 package ir.gity.komposer.core.serialization
 
+import ir.gity.komposer.core.model.BoxModel
 import ir.gity.komposer.core.model.ColumnModel
 import ir.gity.komposer.core.model.RowModel
 import ir.gity.komposer.core.model.SpacerModel
@@ -25,6 +26,7 @@ class RoundTripTest {
             TextModel(text = "hi"),
             ColumnModel(),
             RowModel(),
+            BoxModel(),
             SpacerModel(height = 8f),
         )
         for (node in nodes) {
@@ -116,5 +118,10 @@ class RoundTripTest {
     @Test
     fun emptyRowEncodesWithoutChildrenKey() {
         assertEquals("""{"type":"row"}""", serializer.encodeNode(RowModel()))
+    }
+
+    @Test
+    fun emptyBoxEncodesWithoutChildrenKey() {
+        assertEquals("""{"type":"box"}""", serializer.encodeNode(BoxModel()))
     }
 }
